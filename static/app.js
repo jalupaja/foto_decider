@@ -114,20 +114,28 @@ function fotoDecider() {
       return pane === 1 ? this.index1 : this.index2;
     },
 
-    fitImageToPane(pane) {
+    fitImageToPane(pane, forceReset = false) {
       const img = document.querySelector(`.pane[data-pane="${pane}"] .pane-content img`);
       if (!img || !img.naturalWidth || !img.naturalHeight) return;
       
-      const container = img.parentElement;
-      const containerRect = container.getBoundingClientRect();
-      const scaleX = containerRect.width / img.naturalWidth;
-      const scaleY = containerRect.height / img.naturalHeight;
+      const paneEl = document.querySelector(`.pane[data-pane="${pane}"]`);
+      const paneRect = paneEl.getBoundingClientRect();
+      const scaleX = paneRect.width / img.naturalWidth;
+      const scaleY = paneRect.height / img.naturalHeight;
       const minScale = Math.min(scaleX, scaleY, 1);
       
       if (pane === 1) {
-        this.pane1Transform = { x: 0, y: 0, scale: minScale, minScale: minScale };
+        if (forceReset || this.pane1Transform.scale < minScale) {
+          this.pane1Transform = { x: 0, y: 0, scale: minScale, minScale: minScale };
+        } else {
+          this.pane1Transform.minScale = minScale;
+        }
       } else {
-        this.pane2Transform = { x: 0, y: 0, scale: minScale, minScale: minScale };
+        if (forceReset || this.pane2Transform.scale < minScale) {
+          this.pane2Transform = { x: 0, y: 0, scale: minScale, minScale: minScale };
+        } else {
+          this.pane2Transform.minScale = minScale;
+        }
       }
     },
 
@@ -155,9 +163,30 @@ function fotoDecider() {
       const delta = event.deltaY;
       const factor = delta > 0 ? 0.9 : 1.1;
       
+      const img = document.querySelector(`.pane[data-pane="${pane}"] .pane-content img`);
+      if (!img) return;
+      
+      const paneEl = document.querySelector(`.pane[data-pane="${pane}"]`);
+      const paneRect = paneEl.getBoundingClientRect();
+      const imgRect = img.getBoundingClientRect();
+      
+      const mouseX = event.clientX - imgRect.left;
+      const mouseY = event.clientY - imgRect.top;
+      
       const t = pane === 1 ? this.pane1Transform : this.pane2Transform;
       const oldScale = t.scale;
-      const newScale = Math.max(t.minScale || 0.1, Math.min(10, oldScale * factor));
+      
+      let newScale = oldScale * factor;
+      if (newScale < (t.minScale || 0.1)) {
+        newScale = t.minScale || 0.1;
+      }
+      if (newScale > 10) {
+        newScale = 10;
+      }
+      
+      const scaleChange = newScale / oldScale;
+      t.x = mouseX - (mouseX - t.x) * scaleChange;
+      t.y = mouseY - (mouseY - t.y) * scaleChange;
       t.scale = newScale;
       
       this.showZoomIndicator(Math.round(newScale * 100));
