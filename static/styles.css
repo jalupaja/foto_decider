@@ -135,53 +135,24 @@ button:disabled {
   transform: scale(1.05);
 }
 
-.preview-thumb.current {
-  border-color: var(--focus);
-  box-shadow: 0 0 10px var(--focus);
-}
-
 .preview-thumb.deleted {
   opacity: 0.5;
   filter: grayscale(0.5);
 }
 
 .preview-thumb.pane1-current {
-  border-color: var(--pane-a) !important;
+  border: 3px solid var(--pane-a) !important;
   box-shadow: 0 0 8px var(--pane-a);
 }
 
 .preview-thumb.pane2-current {
-  border-color: var(--pane-b) !important;
+  border: 3px solid var(--pane-b) !important;
   box-shadow: 0 0 8px var(--pane-b);
 }
 
 .preview-thumb.pane1-current.pane2-current {
-  border-color: var(--focus) !important;
+  border: 3px solid var(--focus) !important;
   box-shadow: 0 0 8px var(--focus);
-}
-
-.preview-pane-indicators {
-  position: absolute;
-  bottom: 2px;
-  left: 2px;
-  display: flex;
-  gap: 2px;
-}
-
-.pane-indicator {
-  font-size: 8px;
-  font-weight: 600;
-  padding: 1px 3px;
-  border-radius: 2px;
-  color: white;
-}
-
-.pane-a-indicator {
-  background: var(--pane-a);
-}
-
-.pane-b-indicator {
-  background: var(--pane-b);
 }
 
 .preview-badges {
@@ -220,17 +191,20 @@ main {
   flex: 1;
   position: relative;
   overflow: hidden;
-  border: 3px solid transparent;
   background: var(--bg);
   cursor: grab;
 }
 
-.pane:first-child {
-  border-right: 1px solid #333;
+.pane[data-pane="1"] {
+  border-top: 3px solid var(--pane-a);
+}
+
+.pane[data-pane="2"] {
+  border-top: 3px solid var(--pane-b);
 }
 
 .pane.focused {
-  border-color: var(--focus);
+  box-shadow: inset 0 0 0 2px var(--focus);
 }
 
 .pane-label {

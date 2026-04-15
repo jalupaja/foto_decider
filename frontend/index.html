@@ -36,13 +36,12 @@
     </div>
   </header>
 
-  <div class="preview-container" id="previewContainer">
+    <div class="preview-container" id="previewContainer">
     <div class="preview-strip" id="previewStrip">
       <template x-for="(file, idx) in files" :key="file.id">
         <div
           class="preview-thumb"
           :class="{
-            current: idx === getCurrentIndex(),
             pane1-current: idx === index1,
             pane2-current: idx === index2,
             marked: marks[file.id] && marks[file.id].length > 0,
@@ -55,18 +54,11 @@
             :alt="file.name"
             loading="lazy"
           >
-          <div class="preview-pane-indicators">
-            <span class="pane-indicator pane-a-indicator" x-show="idx === index1">A</span>
-            <span class="pane-indicator pane-b-indicator" x-show="idx === index2">B</span>
-          </div>
           <div class="preview-badges">
             <template x-for="mark in (marks[file.id] || [])" :key="mark">
               <span class="mark-badge" :style="`background: var(--mark-${mark})`" x-text="mark"></span>
             </template>
           </div>
-        </div>
-      </template>
-    </div>
         </div>
       </template>
     </div>
