@@ -54,6 +54,7 @@ function fotoDecider() {
           this.pane1Transform = { x: 0, y: 0, scale: 1 };
           this.pane2Transform = { x: 0, y: 0, scale: 1 };
           this.fullImageCache.clear();
+          this.thumbCache = new Set();
           this.updatePreload();
         }
       } catch (err) {
@@ -69,6 +70,7 @@ function fotoDecider() {
       this.index1 = 0;
       this.index2 = 1;
       this.fullImageCache.clear();
+      this.thumbCache = new Set();
     },
 
     goTo(index) {
@@ -347,11 +349,30 @@ function fotoDecider() {
     updatePreload() {
       if (this.files.length === 0) return;
       
-      const preloadCount = 10;
+      const thumbPreloadCount = 100;
+      const fullPreloadCount = 10;
       const indices = [this.index1, this.index2];
       
+      const preloadThumb = (idx) => {
+        const file = this.files[idx];
+        if (!file) return;
+        const url = `/api/thumbnail/${encodeURIComponent(file.id)}`;
+        if (!this.thumbCache) this.thumbCache = new Set();
+        if (!this.thumbCache.has(url)) {
+          const img = new Image();
+          img.src = url;
+          this.thumbCache.add(url);
+        }
+      };
+      
+      indices.forEach(idx => {
+        for (let i = Math.max(0, idx - 25); i < Math.min(this.files.length, idx + thumbPreloadCount); i++) {
+          preloadThumb(i);
+        }
+      });
+      
       indices.forEach(startIdx => {
-        for (let i = startIdx; i < Math.min(this.files.length, startIdx + preloadCount); i++) {
+        for (let i = startIdx; i < Math.min(this.files.length, startIdx + fullPreloadCount); i++) {
           const file = this.files[i];
           if (!this.fullImageCache.has(file.id)) {
             const img = new Image();
@@ -375,7 +396,7 @@ function fotoDecider() {
     },
 
     preloadLoop() {
-      setInterval(() => this.updatePreload(), 3000);
+      setInterval(() => this.updatePreload(), 5000);
     },
 
     getPaneMark(pane) {
