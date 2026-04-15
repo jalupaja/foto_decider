@@ -37,7 +37,8 @@ class BashCommandsResponse(BaseModel):
     commands: dict[str, str]
     files_by_mark: dict[str, list[str]]
 
-static_path = Path(__file__).parent / "frontend"
+static_path = Path(__file__).parent.parent / "static"
+frontend_path = Path(__file__).parent.parent / "frontend"
 if static_path.exists():
     app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
 
@@ -98,7 +99,7 @@ def create_thumbnail(source_path: str, cache_file: Path) -> bool:
 
 @app.get("/")
 async def root():
-    index_path = static_path / "index.html"
+    index_path = frontend_path / "index.html"
     if index_path.exists():
         return FileResponse(str(index_path))
     raise HTTPException(status_code=404, detail="Frontend not found")
