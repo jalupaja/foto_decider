@@ -53,7 +53,9 @@
             :alt="file.name"
             loading="lazy"
           >
-          <span class="mark-badge" x-show="marks[file.id] !== undefined" x-text="marks[file.id]"></span>
+          <div class="preview-badges">
+            <span class="mark-badge" x-show="marks[file.id] !== undefined" x-text="marks[file.id]"></span>
+          </div>
         </div>
       </template>
     </div>
@@ -61,55 +63,45 @@
 
   <main>
     <div
-      class="pane"
-      :class="{ focused: focusedPane === 1 }"
+      class="pane focused"
+      data-pane="1"
       data-label="A"
-      @click="focusPane(1); if(!pane1File && files.length) loadPane(1)"
-      @dragover.prevent="focusPane(1)"
-      @drop.prevent="handleDrop($event, 1)"
+      @click="focusPane(1)"
+      @wheel.prevent="zoomAtMouse(1, $event)"
     >
-      <div class="pane-empty" x-show="!pane1File">
-        <div class="pane-empty-icon">🖼️</div>
-        <div>Click to load image</div>
-        <div class="hint">Press 1-9 to mark</div>
-      </div>
-      <div class="pane-content" x-show="pane1File">
+      <div class="pane-label">A</div>
+      <div class="pane-content">
         <img
-          :src="pane1File ? `/api/image/${encodeURIComponent(pane1File.id)}` : ''"
-          @load="fitImage($event, 1)"
-          @wheel.prevent="zoomPane(1, $event)"
-          :style="getPaneStyle(1)"
+          x-show="files.length > 0"
+          :src="getCurrentImageUrl()"
+          @load="fitImageToPane(1)"
           draggable="false"
+          :style="getPaneStyle(1)"
         >
       </div>
       <div class="pane-mark" x-show="pane1Mark" x-text="pane1Mark"></div>
-      <div class="pane-info" x-text="pane1File?.name || ''"></div>
+      <div class="pane-info" x-text="files[currentIndex]?.name || ''"></div>
     </div>
 
     <div
       class="pane"
-      :class="{ focused: focusedPane === 2 }"
+      data-pane="2"
       data-label="B"
-      @click="focusPane(2); if(!pane2File && files.length) loadPane(2)"
-      @dragover.prevent="focusPane(2)"
-      @drop.prevent="handleDrop($event, 2)"
+      @click="focusPane(2)"
+      @wheel.prevent="zoomAtMouse(2, $event)"
     >
-      <div class="pane-empty" x-show="!pane2File">
-        <div class="pane-empty-icon">🖼️</div>
-        <div>Click to load image</div>
-        <div class="hint">Press 1-9 to mark</div>
-      </div>
-      <div class="pane-content" x-show="pane2File">
+      <div class="pane-label">B</div>
+      <div class="pane-content">
         <img
-          :src="pane2File ? `/api/image/${encodeURIComponent(pane2File.id)}` : ''"
-          @load="fitImage($event, 2)"
-          @wheel.prevent="zoomPane(2, $event)"
-          :style="getPaneStyle(2)"
+          x-show="files.length > 0"
+          :src="getCurrentImageUrl()"
+          @load="fitImageToPane(2)"
           draggable="false"
+          :style="getPaneStyle(2)"
         >
       </div>
       <div class="pane-mark" x-show="pane2Mark" x-text="pane2Mark"></div>
-      <div class="pane-info" x-text="pane2File?.name || ''"></div>
+      <div class="pane-info" x-text="files[currentIndex]?.name || ''"></div>
     </div>
   </main>
 
@@ -123,9 +115,11 @@
       </template>
     </div>
     <div class="shortcuts">
-      Space: Next | BkSp: Prev | ←→: Pane | +/-: Zoom | 1-9: Mark | Esc: Clear
+      Tab: Switch Pane | Space: Next | BkSp: Prev | ←→↑↓: Pan | +/-: Zoom | 1-9: Mark | Esc: Reset
     </div>
   </footer>
+
+  <div class="zoom-indicator" id="zoomIndicator">100%</div>
 
   <!-- Bash Modal -->
   <div class="modal" x-show="showBash" x-transition @click.self="showBash = false">

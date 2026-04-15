@@ -6,13 +6,16 @@ function fotoDecider() {
     currentIndex: 0,
     focusedPane: 1,
     marks: {},
-    pane1File: null,
-    pane2File: null,
     pane1Transform: { x: 0, y: 0, scale: 1 },
     pane2Transform: { x: 0, y: 0, scale: 1 },
     showBash: false,
     bashCommands: {},
     bashFiles: {},
+    preloadQueue: [],
+    thumbnailCache: new Map(),
+    fullImageCache: new Map(),
+    maxFullImages: 15,
+    maxThumbnails: 300,
     markNames: {
       1: 'Keep', 2: 'Review', 3: 'Delete', 4: 'Similar',
       5: 'Backup', 6: 'Edit', 7: 'HDR', 8: 'Bracket', 9: 'Other'
@@ -25,13 +28,15 @@ function fotoDecider() {
         if (data.folder) {
           this.folder = data.folder;
           this.files = data.files;
-          this.scrollPreview();
         }
       } catch (err) {
         console.error('Failed to load folder:', err);
       }
 
       document.addEventListener('keydown', (e) => this.handleKey(e));
+      window.addEventListener('resize', () => this.handleResize());
+      
+      this.processPreload();
     },
 
     async loadFolder() {
@@ -48,9 +53,11 @@ function fotoDecider() {
           this.files = data.files;
           this.marks = {};
           this.currentIndex = 0;
-          this.pane1File = null;
-          this.pane2File = null;
-          this.scrollPreview();
+          this.pane1Transform = { x: 0, y: 0, scale: 1 };
+          this.pane2Transform = { x: 0, y: 0, scale: 1 };
+          this.thumbnailCache.clear();
+          this.fullImageCache.clear();
+          this.updatePreload();
         }
       } catch (err) {
         console.error('Failed to load folder:', err);
@@ -63,14 +70,16 @@ function fotoDecider() {
       this.marks = {};
       this.folderPath = '';
       this.currentIndex = 0;
-      this.pane1File = null;
-      this.pane2File = null;
+      this.thumbnailCache.clear();
+      this.fullImageCache.clear();
     },
 
     goTo(index) {
       if (index < 0 || index >= this.files.length) return;
       this.currentIndex = index;
-      this.loadPane(this.focusedPane);
+      this.pane1Transform = { x: 0, y: 0, scale: 1 };
+      this.pane2Transform = { x: 0, y: 0, scale: 1 };
+      this.updatePreload();
       this.scrollPreview();
     },
 
@@ -90,37 +99,45 @@ function fotoDecider() {
       });
     },
 
-    loadPane(pane) {
-      if (this.files.length === 0) return;
-      if (pane === 1) {
-        this.pane1File = this.files[this.currentIndex];
-        this.pane1Transform = { x: 0, y: 0, scale: 1 };
-      } else {
-        this.pane2File = this.files[this.currentIndex];
-        this.pane2Transform = { x: 0, y: 0, scale: 1 };
-      }
-    },
-
     focusPane(pane) {
       this.focusedPane = pane;
     },
 
-    fitImage(event, pane) {
-      const img = event.target;
-      if (!img.naturalWidth || !img.naturalHeight) return;
+    fitImageToPane(pane) {
+      const img = document.querySelector(`.pane[data-pane="${pane}"] .pane-content img`);
+      if (!img || !img.naturalWidth || !img.naturalHeight) return;
       
       const container = img.parentElement;
-      if (!container) return;
       const containerRect = container.getBoundingClientRect();
       const scaleX = containerRect.width / img.naturalWidth;
       const scaleY = containerRect.height / img.naturalHeight;
       const scale = Math.min(scaleX, scaleY, 1);
       
       if (pane === 1) {
-        this.pane1Transform.scale = scale;
+        this.pane1Transform = { x: 0, y: 0, scale: scale };
       } else {
-        this.pane2Transform.scale = scale;
+        this.pane2Transform = { x: 0, y: 0, scale: scale };
       }
+    },
+
+    handleResize() {
+      this.fitImageToPane(1);
+      this.fitImageToPane(2);
+    },
+
+    getImageUrl(index) {
+      if (index < 0 || index >= this.files.length) return null;
+      const file = this.files[index];
+      
+      if (this.fullImageCache.has(file.id)) {
+        return this.fullImageCache.get(file.id);
+      }
+      
+      return `/api/image/${encodeURIComponent(file.id)}`;
+    },
+
+    getCurrentImageUrl() {
+      return this.getImageUrl(this.currentIndex);
     },
 
     getPaneStyle(pane) {
@@ -128,13 +145,51 @@ function fotoDecider() {
       return `transform: translate(calc(-50% + ${t.x}px), calc(-50% + ${t.y}px)) scale(${t.scale})`;
     },
 
-    zoomPane(pane, event) {
-      const factor = event.deltaY > 0 ? 0.9 : 1.1;
-      if (pane === 1) {
-        this.pane1Transform.scale = Math.max(0.1, Math.min(10, this.pane1Transform.scale * factor));
-      } else {
-        this.pane2Transform.scale = Math.max(0.1, Math.min(10, this.pane2Transform.scale * factor));
+    zoomAtMouse(pane, event) {
+      const delta = event.deltaY;
+      const factor = delta > 0 ? 0.9 : 1.1;
+      
+      const img = document.querySelector(`.pane[data-pane="${pane}"] .pane-content img`);
+      if (!img) return;
+      
+      const container = img.parentElement;
+      const containerRect = container.getBoundingClientRect();
+      const rect = img.getBoundingClientRect();
+      
+      const mouseX = event.clientX - rect.left;
+      const mouseY = event.clientY - rect.top;
+      
+      const absMouseX = mouseX * img.naturalWidth / rect.width;
+      const absMouseY = mouseY * img.naturalHeight / rect.height;
+      
+      const t = pane === 1 ? this.pane1Transform : this.pane2Transform;
+      const oldScale = t.scale;
+      const newScale = Math.max(0.1, Math.min(10, oldScale * factor));
+      
+      const scaleChange = newScale / oldScale;
+      t.x = mouseX - (mouseX - t.x) * scaleChange;
+      t.y = mouseY - (mouseY - t.y) * scaleChange;
+      t.scale = newScale;
+      
+      this.showZoomIndicator(Math.round(newScale * 100));
+    },
+
+    showZoomIndicator(percent) {
+      const indicator = document.getElementById('zoomIndicator');
+      if (indicator) {
+        indicator.textContent = percent + '%';
+        indicator.classList.add('show');
+        clearTimeout(this.zoomTimeout);
+        this.zoomTimeout = setTimeout(() => {
+          indicator.classList.remove('show');
+        }, 1000);
       }
+    },
+
+    zoomPane(pane, factor) {
+      const t = pane === 1 ? this.pane1Transform : this.pane2Transform;
+      t.scale = Math.max(0.1, Math.min(10, t.scale * factor));
+      this.showZoomIndicator(Math.round(t.scale * 100));
     },
 
     panPane(dx, dy) {
@@ -151,6 +206,10 @@ function fotoDecider() {
       if (e.target.tagName === 'INPUT') return;
 
       switch (e.key) {
+        case 'Tab':
+          e.preventDefault();
+          this.focusPane(this.focusedPane === 1 ? 2 : 1);
+          break;
         case ' ':
           e.preventDefault();
           this.goTo(this.currentIndex + 1);
@@ -181,16 +240,16 @@ function fotoDecider() {
           break;
         case '+':
         case '=':
-          this.zoomPane(this.focusedPane, { deltaY: -100 });
+          this.zoomPane(this.focusedPane, 1.2);
           break;
         case '-':
-          this.zoomPane(this.focusedPane, { deltaY: 100 });
+          this.zoomPane(this.focusedPane, 0.8);
           break;
         case 'Escape':
           if (this.focusedPane === 1) {
-            this.pane1File = null;
+            this.pane1Transform = { x: 0, y: 0, scale: 1 };
           } else {
-            this.pane2File = null;
+            this.pane2Transform = { x: 0, y: 0, scale: 1 };
           }
           break;
         default:
@@ -265,21 +324,58 @@ function fotoDecider() {
       });
     },
 
-    async handleDrop(e, pane) {
-      const files = e.dataTransfer.files;
-      if (files.length > 0) {
-        this.focusPane(pane);
+    updatePreload() {
+      if (this.files.length === 0) return;
+      
+      const preloadCount = 10;
+      const startIdx = this.currentIndex;
+      const endIdx = Math.min(this.files.length, startIdx + preloadCount);
+      
+      for (let i = startIdx; i < endIdx; i++) {
+        const file = this.files[i];
+        
+        if (!this.fullImageCache.has(file.id)) {
+          const img = new Image();
+          img.src = this.getImageUrl(i);
+          this.fullImageCache.set(file.id, this.getImageUrl(i));
+        }
+      }
+      
+      if (this.fullImageCache.size > this.maxFullImages) {
+        const toDelete = [];
+        for (const [id, url] of this.fullImageCache) {
+          const idx = this.files.findIndex(f => f.id === id);
+          if (idx === -1 || Math.abs(idx - this.currentIndex) > this.maxFullImages) {
+            toDelete.push(id);
+          }
+        }
+        toDelete.forEach(id => this.fullImageCache.delete(id));
+      }
+      
+      if (this.thumbnailCache.size > this.maxThumbnails) {
+        const toDelete = [];
+        for (const [id] of this.thumbnailCache) {
+          const idx = this.files.findIndex(f => f.id === id);
+          if (idx === -1 || Math.abs(idx - this.currentIndex) > this.maxThumbnails / 2) {
+            toDelete.push(id);
+          }
+        }
+        toDelete.slice(0, 50).forEach(id => this.thumbnailCache.delete(id));
       }
     },
 
+    processPreload() {
+      setInterval(() => this.updatePreload(), 5000);
+    },
+
     get pane1Mark() {
-      if (!this.pane1File) return null;
-      return this.marks[this.pane1File.id] || null;
+      if (this.files.length === 0) return null;
+      const file = this.files[this.currentIndex];
+      return file ? (this.marks[file.id] || null) : null;
     },
 
     get pane2Mark() {
-      if (!this.pane2File) return null;
-      return this.marks[this.pane2File.id] || null;
+      return this.pane1Mark;
     }
   };
 }

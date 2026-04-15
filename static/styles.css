@@ -187,6 +187,31 @@ button:disabled {
   border-radius: 3px;
 }
 
+.preview-badges {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 4px;
+}
+
+.preview-badges .mark-badge {
+  position: relative;
+  top: auto;
+  right: auto;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
 main {
   flex: 1;
   display: flex;
@@ -210,18 +235,23 @@ main {
   border-color: var(--focus);
 }
 
-.pane.focused::before {
-  content: attr(data-label);
+.pane-label {
   position: absolute;
   top: 10px;
   left: 10px;
-  background: var(--focus);
-  color: var(--bg);
+  background: var(--bg-lighter);
+  color: var(--text);
   padding: 4px 10px;
   border-radius: 4px;
   font-size: 12px;
   font-weight: 600;
   z-index: 10;
+  border: 2px solid transparent;
+}
+
+.pane.focused .pane-label {
+  background: var(--focus);
+  color: var(--bg);
 }
 
 .pane-empty {
@@ -380,4 +410,23 @@ footer {
   flex-shrink: 0;
   padding: 4px 10px;
   font-size: 11px;
+}
+
+.zoom-indicator {
+  position: fixed;
+  bottom: 70px;
+  right: 20px;
+  background: var(--bg-light);
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.zoom-indicator.show {
+  opacity: 1;
 }
