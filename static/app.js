@@ -246,17 +246,29 @@ function fotoDecider() {
       const file = this.files[idx];
       if (!file) return;
 
-      if (this.marks[file.id] === mark) {
-        delete this.marks[file.id];
+      if (!this.marks[file.id]) {
+        this.marks[file.id] = [];
+      }
+      
+      const marks = this.marks[file.id];
+      const idx2 = marks.indexOf(mark);
+      if (idx2 >= 0) {
+        marks.splice(idx2, 1);
+        if (marks.length === 0) {
+          delete this.marks[file.id];
+        }
       } else {
-        this.marks[file.id] = mark;
+        marks.push(mark);
       }
 
       await this.saveMarks();
     },
 
     getMarkCount(mark) {
-      const count = Object.values(this.marks).filter(m => m === mark).length;
+      let count = 0;
+      Object.values(this.marks).forEach(marks => {
+        if (Array.isArray(marks) && marks.includes(mark)) count++;
+      });
       return count || '-';
     },
 
@@ -363,7 +375,9 @@ function fotoDecider() {
     getPaneMark(pane) {
       const idx = this.getPaneIndex(pane);
       const file = this.files[idx];
-      return file ? (this.marks[file.id] || null) : null;
+      if (!file) return null;
+      const marks = this.marks[file.id];
+      return marks ? marks.join(',') : null;
     },
 
     getPaneName(pane) {

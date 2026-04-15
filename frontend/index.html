@@ -43,8 +43,8 @@
           class="preview-thumb"
           :class="{
             current: idx === getCurrentIndex(),
-            marked: marks[file.id] !== undefined,
-            deleted: marks[file.id] === 3
+            marked: marks[file.id] && marks[file.id].length > 0,
+            deleted: marks[file.id] && marks[file.id].includes(3)
           }"
           @click="focusedPane === 1 ? index1 = idx : index2 = idx; scrollPreview()"
         >
@@ -54,7 +54,9 @@
             loading="lazy"
           >
           <div class="preview-badges">
-            <span class="mark-badge" x-show="marks[file.id] !== undefined" x-text="marks[file.id]"></span>
+            <template x-for="mark in (marks[file.id] || [])" :key="mark">
+              <span class="mark-badge" x-text="mark" :style="`background: var(--mark-${mark})`"></span>
+            </template>
           </div>
         </div>
       </template>
@@ -77,7 +79,11 @@
           draggable="false"
         >
       </div>
-      <div class="pane-mark" x-show="getPaneMark(1)" x-text="getPaneMark(1)"></div>
+      <div class="pane-marks" x-show="marks[files[getPaneIndex(1)]?.id]?.length > 0">
+        <template x-for="mark in (marks[files[getPaneIndex(1)]?.id] || [])" :key="mark">
+          <span class="mark-badge-lg" :style="`background: var(--mark-${mark})`" x-text="mark"></span>
+        </template>
+      </div>
       <div class="pane-info" x-text="getPaneName(1)"></div>
     </div>
 
@@ -96,7 +102,11 @@
           draggable="false"
         >
       </div>
-      <div class="pane-mark" x-show="getPaneMark(2)" x-text="getPaneMark(2)"></div>
+      <div class="pane-marks" x-show="marks[files[getPaneIndex(2)]?.id]?.length > 0">
+        <template x-for="mark in (marks[files[getPaneIndex(2)]?.id] || [])" :key="mark">
+          <span class="mark-badge-lg" :style="`background: var(--mark-${mark})`" x-text="mark"></span>
+        </template>
+      </div>
       <div class="pane-info" x-text="getPaneName(2)"></div>
     </div>
   </main>
