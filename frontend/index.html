@@ -28,7 +28,7 @@
           <button @click="clearFolder()" title="Close folder" style="padding: 4px 8px;">✕</button>
         </span>
       </template>
-      <span class="counter" x-text="files.length ? `${currentIndex + 1} / ${files.length}` : 'No images'"></span>
+      <span class="counter" x-text="files.length ? `${getCurrentIndex() + 1} / ${files.length}` : 'No images'"></span>
     </div>
     <div class="header-actions" style="margin-left: auto;">
       <button @click="openBash()" :disabled="Object.keys(marks).length === 0">⚡ Bash</button>
@@ -42,7 +42,7 @@
         <div
           class="preview-thumb"
           :class="{
-            current: idx === currentIndex,
+            current: idx === getCurrentIndex(),
             marked: marks[file.id] !== undefined,
             deleted: marks[file.id] === 3
           }"

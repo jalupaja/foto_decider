@@ -3,7 +3,8 @@ function fotoDecider() {
     folder: '',
     folderPath: '',
     files: [],
-    currentIndex: 0,
+    index1: 0,
+    index2: 1,
     focusedPane: 1,
     marks: {},
     pane1Transform: { x: 0, y: 0, scale: 1 },
@@ -11,11 +12,8 @@ function fotoDecider() {
     showBash: false,
     bashCommands: {},
     bashFiles: {},
-    preloadQueue: [],
-    thumbnailCache: new Map(),
     fullImageCache: new Map(),
     maxFullImages: 15,
-    maxThumbnails: 300,
     markNames: {
       1: 'Keep', 2: 'Review', 3: 'Delete', 4: 'Similar',
       5: 'Backup', 6: 'Edit', 7: 'HDR', 8: 'Bracket', 9: 'Other'
@@ -35,8 +33,7 @@ function fotoDecider() {
 
       document.addEventListener('keydown', (e) => this.handleKey(e));
       window.addEventListener('resize', () => this.handleResize());
-      
-      this.processPreload();
+      this.preloadLoop();
     },
 
     async loadFolder() {
@@ -52,10 +49,10 @@ function fotoDecider() {
           this.folder = data.folder;
           this.files = data.files;
           this.marks = {};
-          this.currentIndex = 0;
+          this.index1 = 0;
+          this.index2 = Math.min(1, this.files.length - 1);
           this.pane1Transform = { x: 0, y: 0, scale: 1 };
           this.pane2Transform = { x: 0, y: 0, scale: 1 };
-          this.thumbnailCache.clear();
           this.fullImageCache.clear();
           this.updatePreload();
         }
@@ -69,16 +66,18 @@ function fotoDecider() {
       this.files = [];
       this.marks = {};
       this.folderPath = '';
-      this.currentIndex = 0;
-      this.thumbnailCache.clear();
+      this.index1 = 0;
+      this.index2 = 1;
       this.fullImageCache.clear();
     },
 
     goTo(index) {
       if (index < 0 || index >= this.files.length) return;
-      this.currentIndex = index;
-      this.pane1Transform = { x: 0, y: 0, scale: 1 };
-      this.pane2Transform = { x: 0, y: 0, scale: 1 };
+      if (this.focusedPane === 1) {
+        this.index1 = index;
+      } else {
+        this.index2 = index;
+      }
       this.updatePreload();
       this.scrollPreview();
     },
@@ -88,9 +87,10 @@ function fotoDecider() {
         const container = document.getElementById('previewContainer');
         const strip = document.getElementById('previewStrip');
         if (!strip) return;
+        const idx = this.focusedPane === 1 ? this.index1 : this.index2;
         const thumbs = strip.querySelectorAll('.preview-thumb');
-        if (thumbs[this.currentIndex]) {
-          const thumb = thumbs[this.currentIndex];
+        if (thumbs[idx]) {
+          const thumb = thumbs[idx];
           const containerRect = container.getBoundingClientRect();
           const thumbRect = thumb.getBoundingClientRect();
           const offset = thumbRect.left - containerRect.left + container.scrollLeft - containerRect.width / 2 + thumbRect.width / 2;
@@ -101,6 +101,14 @@ function fotoDecider() {
 
     focusPane(pane) {
       this.focusedPane = pane;
+    },
+
+    getCurrentIndex() {
+      return this.focusedPane === 1 ? this.index1 : this.index2;
+    },
+
+    getPaneIndex(pane) {
+      return pane === 1 ? this.index1 : this.index2;
     },
 
     fitImageToPane(pane) {
@@ -128,16 +136,11 @@ function fotoDecider() {
     getImageUrl(index) {
       if (index < 0 || index >= this.files.length) return null;
       const file = this.files[index];
-      
-      if (this.fullImageCache.has(file.id)) {
-        return this.fullImageCache.get(file.id);
-      }
-      
       return `/api/image/${encodeURIComponent(file.id)}`;
     },
 
-    getCurrentImageUrl() {
-      return this.getImageUrl(this.currentIndex);
+    getPaneImageUrl(pane) {
+      return this.getImageUrl(this.getPaneIndex(pane));
     },
 
     getPaneStyle(pane) {
@@ -152,15 +155,10 @@ function fotoDecider() {
       const img = document.querySelector(`.pane[data-pane="${pane}"] .pane-content img`);
       if (!img) return;
       
-      const container = img.parentElement;
-      const containerRect = container.getBoundingClientRect();
       const rect = img.getBoundingClientRect();
       
       const mouseX = event.clientX - rect.left;
       const mouseY = event.clientY - rect.top;
-      
-      const absMouseX = mouseX * img.naturalWidth / rect.width;
-      const absMouseY = mouseY * img.naturalHeight / rect.height;
       
       const t = pane === 1 ? this.pane1Transform : this.pane2Transform;
       const oldScale = t.scale;
@@ -204,23 +202,26 @@ function fotoDecider() {
 
     handleKey(e) {
       if (e.target.tagName === 'INPUT') return;
+      e.stopPropagation();
 
       switch (e.key) {
         case 'Tab':
           e.preventDefault();
           this.focusPane(this.focusedPane === 1 ? 2 : 1);
+          this.scrollPreview();
           break;
         case ' ':
           e.preventDefault();
-          this.goTo(this.currentIndex + 1);
+          this.goTo(this.getCurrentIndex() + 1);
           break;
         case 'Backspace':
           e.preventDefault();
-          this.goTo(this.currentIndex - 1);
+          this.goTo(this.getCurrentIndex() - 1);
           break;
         case 'ArrowLeft':
           if (e.ctrlKey || e.metaKey) {
             this.focusPane(this.focusedPane === 1 ? 2 : 1);
+            this.scrollPreview();
           } else {
             this.panPane(e.shiftKey ? -10 : -30, 0);
           }
@@ -228,6 +229,7 @@ function fotoDecider() {
         case 'ArrowRight':
           if (e.ctrlKey || e.metaKey) {
             this.focusPane(this.focusedPane === 1 ? 2 : 1);
+            this.scrollPreview();
           } else {
             this.panPane(e.shiftKey ? 10 : 30, 0);
           }
@@ -246,7 +248,8 @@ function fotoDecider() {
           this.zoomPane(this.focusedPane, 0.8);
           break;
         case 'Escape':
-          if (this.focusedPane === 1) {
+          const pane = this.focusedPane;
+          if (pane === 1) {
             this.pane1Transform = { x: 0, y: 0, scale: 1 };
           } else {
             this.pane2Transform = { x: 0, y: 0, scale: 1 };
@@ -254,13 +257,14 @@ function fotoDecider() {
           break;
         default:
           if (e.key >= '1' && e.key <= '9') {
-            this.markImage(parseInt(e.key));
+            this.markCurrentImage(parseInt(e.key));
           }
       }
     },
 
-    async markImage(mark) {
-      const file = this.files[this.currentIndex];
+    async markCurrentImage(mark) {
+      const idx = this.getCurrentIndex();
+      const file = this.files[idx];
       if (!file) return;
 
       if (this.marks[file.id] === mark) {
@@ -328,54 +332,44 @@ function fotoDecider() {
       if (this.files.length === 0) return;
       
       const preloadCount = 10;
-      const startIdx = this.currentIndex;
-      const endIdx = Math.min(this.files.length, startIdx + preloadCount);
+      const indices = [this.index1, this.index2];
       
-      for (let i = startIdx; i < endIdx; i++) {
-        const file = this.files[i];
-        
-        if (!this.fullImageCache.has(file.id)) {
-          const img = new Image();
-          img.src = this.getImageUrl(i);
-          this.fullImageCache.set(file.id, this.getImageUrl(i));
+      indices.forEach(startIdx => {
+        for (let i = startIdx; i < Math.min(this.files.length, startIdx + preloadCount); i++) {
+          const file = this.files[i];
+          if (!this.fullImageCache.has(file.id)) {
+            const img = new Image();
+            img.src = this.getImageUrl(i);
+            this.fullImageCache.set(file.id, true);
+          }
         }
-      }
+      });
       
       if (this.fullImageCache.size > this.maxFullImages) {
         const toDelete = [];
-        for (const [id, url] of this.fullImageCache) {
+        for (const id of this.fullImageCache.keys()) {
           const idx = this.files.findIndex(f => f.id === id);
-          if (idx === -1 || Math.abs(idx - this.currentIndex) > this.maxFullImages) {
+          const farFromBoth = Math.abs(idx - this.index1) > this.maxFullImages && Math.abs(idx - this.index2) > this.maxFullImages;
+          if (idx === -1 || farFromBoth) {
             toDelete.push(id);
           }
         }
-        toDelete.forEach(id => this.fullImageCache.delete(id));
-      }
-      
-      if (this.thumbnailCache.size > this.maxThumbnails) {
-        const toDelete = [];
-        for (const [id] of this.thumbnailCache) {
-          const idx = this.files.findIndex(f => f.id === id);
-          if (idx === -1 || Math.abs(idx - this.currentIndex) > this.maxThumbnails / 2) {
-            toDelete.push(id);
-          }
-        }
-        toDelete.slice(0, 50).forEach(id => this.thumbnailCache.delete(id));
+        toDelete.slice(0, 5).forEach(id => this.fullImageCache.delete(id));
       }
     },
 
-    processPreload() {
-      setInterval(() => this.updatePreload(), 5000);
+    preloadLoop() {
+      setInterval(() => this.updatePreload(), 3000);
     },
 
-    get pane1Mark() {
-      if (this.files.length === 0) return null;
-      const file = this.files[this.currentIndex];
+    getPaneMark(pane) {
+      const idx = this.getPaneIndex(pane);
+      const file = this.files[idx];
       return file ? (this.marks[file.id] || null) : null;
     },
 
-    get pane2Mark() {
-      return this.pane1Mark;
+    getPaneName(pane) {
+      return this.files[this.getPaneIndex(pane)]?.name || '';
     }
   };
 }
