@@ -43,6 +43,8 @@
           class="preview-thumb"
           :class="{
             current: idx === getCurrentIndex(),
+            pane1-current: idx === index1,
+            pane2-current: idx === index2,
             marked: marks[file.id] && marks[file.id].length > 0,
             deleted: marks[file.id] && marks[file.id].includes(3)
           }"
@@ -53,11 +55,18 @@
             :alt="file.name"
             loading="lazy"
           >
+          <div class="preview-pane-indicators">
+            <span class="pane-indicator pane-a-indicator" x-show="idx === index1">A</span>
+            <span class="pane-indicator pane-b-indicator" x-show="idx === index2">B</span>
+          </div>
           <div class="preview-badges">
             <template x-for="mark in (marks[file.id] || [])" :key="mark">
-              <span class="mark-badge" x-text="mark" :style="`background: var(--mark-${mark})`"></span>
+              <span class="mark-badge" :style="`background: var(--mark-${mark})`" x-text="mark"></span>
             </template>
           </div>
+        </div>
+      </template>
+    </div>
         </div>
       </template>
     </div>
@@ -121,7 +130,7 @@
       </template>
     </div>
     <div class="shortcuts">
-      Tab: Switch Pane | Space: Next | BkSp: Prev | Drag: Pan | Wheel: Zoom | 1-9: Mark | Esc: Reset
+      Tab: Switch Pane | Space: Next | BkSp: Prev | Arrows: Pan | +/-: Zoom | 1-9: Mark | Esc: Reset
     </div>
   </footer>
 

@@ -145,6 +145,45 @@ button:disabled {
   filter: grayscale(0.5);
 }
 
+.preview-thumb.pane1-current {
+  border-color: var(--pane-a) !important;
+  box-shadow: 0 0 8px var(--pane-a);
+}
+
+.preview-thumb.pane2-current {
+  border-color: var(--pane-b) !important;
+  box-shadow: 0 0 8px var(--pane-b);
+}
+
+.preview-thumb.pane1-current.pane2-current {
+  border-color: var(--focus) !important;
+  box-shadow: 0 0 8px var(--focus);
+}
+
+.preview-pane-indicators {
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  display: flex;
+  gap: 2px;
+}
+
+.pane-indicator {
+  font-size: 8px;
+  font-weight: 600;
+  padding: 1px 3px;
+  border-radius: 2px;
+  color: white;
+}
+
+.pane-a-indicator {
+  background: var(--pane-a);
+}
+
+.pane-b-indicator {
+  background: var(--pane-b);
+}
+
 .preview-badges {
   position: absolute;
   top: 0;

@@ -200,6 +200,8 @@ function fotoDecider() {
     handleKey(e) {
       if (e.target.tagName === 'INPUT') return;
       
+      const pz = this.panzoomInstances[this.focusedPane];
+      
       switch (e.key) {
         case ' ':
           e.preventDefault();
@@ -219,16 +221,48 @@ function fotoDecider() {
           if (e.ctrlKey || e.metaKey) {
             e.preventDefault();
             this.focusPane(this.focusedPane === 1 ? 2 : 1);
+          } else if (pz) {
+            e.preventDefault();
+            pz.pan(30, 0);
           }
           break;
         case 'ArrowRight':
           if (e.ctrlKey || e.metaKey) {
             e.preventDefault();
             this.focusPane(this.focusedPane === 1 ? 2 : 1);
+          } else if (pz) {
+            e.preventDefault();
+            pz.pan(-30, 0);
+          }
+          break;
+        case 'ArrowUp':
+          if (pz) {
+            e.preventDefault();
+            pz.pan(0, 30);
+          }
+          break;
+        case 'ArrowDown':
+          if (pz) {
+            e.preventDefault();
+            pz.pan(0, -30);
+          }
+          break;
+        case '+':
+        case '=':
+          if (pz) {
+            e.preventDefault();
+            const rect = pz.element.getBoundingClientRect();
+            pz.zoom(1.2, { clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 });
+          }
+          break;
+        case '-':
+          if (pz) {
+            e.preventDefault();
+            const rect = pz.element.getBoundingClientRect();
+            pz.zoom(0.8, { clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 });
           }
           break;
         case 'Escape':
-          const pz = this.panzoomInstances[this.focusedPane];
           if (pz) {
             pz.reset();
           }
