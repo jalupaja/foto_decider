@@ -73,14 +73,14 @@
       <div class="pane-content">
         <img
           x-show="files.length > 0"
-          :src="getCurrentImageUrl()"
+          :src="getPaneImageUrl(1)"
           @load="fitImageToPane(1)"
           draggable="false"
           :style="getPaneStyle(1)"
         >
       </div>
-      <div class="pane-mark" x-show="pane1Mark" x-text="pane1Mark"></div>
-      <div class="pane-info" x-text="files[currentIndex]?.name || ''"></div>
+      <div class="pane-mark" x-show="getPaneMark(1)" x-text="getPaneMark(1)"></div>
+      <div class="pane-info" x-text="getPaneName(1)"></div>
     </div>
 
     <div
@@ -94,14 +94,14 @@
       <div class="pane-content">
         <img
           x-show="files.length > 0"
-          :src="getCurrentImageUrl()"
+          :src="getPaneImageUrl(2)"
           @load="fitImageToPane(2)"
           draggable="false"
           :style="getPaneStyle(2)"
         >
       </div>
-      <div class="pane-mark" x-show="pane2Mark" x-text="pane2Mark"></div>
-      <div class="pane-info" x-text="files[currentIndex]?.name || ''"></div>
+      <div class="pane-mark" x-show="getPaneMark(2)" x-text="getPaneMark(2)"></div>
+      <div class="pane-info" x-text="getPaneName(2)"></div>
     </div>
   </main>
 

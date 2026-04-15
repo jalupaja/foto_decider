@@ -31,7 +31,7 @@ function fotoDecider() {
         console.error('Failed to load folder:', err);
       }
 
-      document.addEventListener('keydown', (e) => this.handleKey(e));
+      document.addEventListener('keydown', (e) => this.handleKey(e), true);
       window.addEventListener('resize', () => this.handleResize());
       this.preloadLoop();
     },
@@ -202,21 +202,24 @@ function fotoDecider() {
 
     handleKey(e) {
       if (e.target.tagName === 'INPUT') return;
-      e.stopPropagation();
+      
+      if (e.key === ' ' || e.key === 'Backspace') {
+        e.preventDefault();
+        e.stopPropagation();
+        const idx = this.getCurrentIndex();
+        if (e.key === ' ') {
+          this.goTo(idx + 1);
+        } else {
+          this.goTo(idx - 1);
+        }
+        return;
+      }
 
       switch (e.key) {
         case 'Tab':
           e.preventDefault();
           this.focusPane(this.focusedPane === 1 ? 2 : 1);
           this.scrollPreview();
-          break;
-        case ' ':
-          e.preventDefault();
-          this.goTo(this.getCurrentIndex() + 1);
-          break;
-        case 'Backspace':
-          e.preventDefault();
-          this.goTo(this.getCurrentIndex() - 1);
           break;
         case 'ArrowLeft':
           if (e.ctrlKey || e.metaKey) {
