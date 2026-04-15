@@ -201,28 +201,17 @@ function fotoDecider() {
     handleKey(e) {
       if (e.target.tagName === 'INPUT') return;
       
-      if (e.key === ' ') {
-        e.preventDefault();
-        this.goTo(this.getCurrentIndex() + 1);
-        return;
-      }
-
-      if (e.key === 'Backspace') {
-        e.preventDefault();
-        this.goTo(this.getCurrentIndex() - 1);
-        return;
-      }
-
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        const pz = this.panzoomInstances[this.focusedPane];
-        if (pz) {
-          pz.reset();
-        }
-        return;
-      }
-
       switch (e.key) {
+        case ' ':
+          e.preventDefault();
+          e.stopPropagation();
+          this.goTo(this.getCurrentIndex() + 1);
+          break;
+        case 'Backspace':
+          e.preventDefault();
+          e.stopPropagation();
+          this.goTo(this.getCurrentIndex() - 1);
+          break;
         case 'Tab':
           e.preventDefault();
           this.focusPane(this.focusedPane === 1 ? 2 : 1);
