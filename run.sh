@@ -1,2 +1,3 @@
 #!/bin/bash
-python3 -m http.server 8000 --bind 0.0.0.0
+cd "$(dirname "$0")"
+exec python -m backend.main "$@"

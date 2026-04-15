@@ -1,13 +1,29 @@
 # Foto Decider
 
-An image comparison tool for photographers to efficiently select and organize photos.
+An image comparison tool for photographers to efficiently select and organize thousands of photos.
+
+## Quick Start
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Run with a folder
+./run.sh /path/to/photos
+
+# Or just run and enter path in the UI
+./run.sh
+```
+
+Then open http://localhost:8000 in your browser.
 
 ## Features
 
 ### Core Workflow
-- **Folder Selection**: Open a local folder to access images
+- **Large Folders**: Handles thousands of images efficiently
 - **2-Pane Comparison**: Compare two images side by side with independent controls
-- **Navigation**: Go through images one by one with keyboard shortcuts
+- **RAW Support**: Automatically generates thumbnails for RAW files (.cr2, .cr3, .nef, .arw, .dng, etc.)
+- **Fast Navigation**: Keyboard-driven workflow for rapid selection
 
 ### Marking System (1-9)
 - **1 - Keep**: Best images to keep
@@ -25,27 +41,30 @@ An image comparison tool for photographers to efficiently select and organize ph
 |-----|--------|
 | Space | Next image |
 | Backspace | Previous image |
-| ← → ↑ ↓ | Pan image (or pane switch with Ctrl) |
+| ← → ↑ ↓ | Pan image |
+| Ctrl+←/→ | Switch pane |
 | + / - | Zoom in/out |
+| Mouse wheel | Zoom |
 | 1-9 | Mark/unmark image |
-| M | Show mark menu |
 | Esc | Clear current pane |
 
 ### Bash Commands
-Generate bash commands for:
+Generate bash commands to:
 - Copy marked files to folders
 - Delete files (marked with 3)
 - List all marked files
 
-## Usage
+## Architecture
 
-1. Open `index.html` in a browser
-2. Click "Open Folder" to select an image folder
-3. Click on a pane to focus it
-4. Use Space/Backspace to navigate
-5. Press 1-9 to mark images
-6. Click "Bash Commands" to generate commands
+- **Backend**: FastAPI server for efficient file serving
+- **Frontend**: Alpine.js for reactive UI
+- **Thumbnails**: Generated on-demand with PIL/rawpy
+- **State**: In-memory (marks persist during session)
 
-## Browser Requirements
-- Chrome/Edge recommended (for folder selection support)
-- File System Access API for local folder access
+## Requirements
+
+- Python 3.8+
+- fastapi
+- uvicorn
+- pillow
+- rawpy (optional, for RAW thumbnail support)
