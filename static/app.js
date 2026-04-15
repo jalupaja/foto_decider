@@ -101,6 +101,7 @@ function fotoDecider() {
 
     focusPane(pane) {
       this.focusedPane = pane;
+      this.scrollPreview();
     },
 
     getCurrentIndex() {
@@ -119,12 +120,12 @@ function fotoDecider() {
       const containerRect = container.getBoundingClientRect();
       const scaleX = containerRect.width / img.naturalWidth;
       const scaleY = containerRect.height / img.naturalHeight;
-      const scale = Math.min(scaleX, scaleY, 1);
+      const minScale = Math.min(scaleX, scaleY, 1);
       
       if (pane === 1) {
-        this.pane1Transform = { x: 0, y: 0, scale: scale };
+        this.pane1Transform = { x: 0, y: 0, scale: minScale, minScale: minScale };
       } else {
-        this.pane2Transform = { x: 0, y: 0, scale: scale };
+        this.pane2Transform = { x: 0, y: 0, scale: minScale, minScale: minScale };
       }
     },
 
@@ -152,21 +153,9 @@ function fotoDecider() {
       const delta = event.deltaY;
       const factor = delta > 0 ? 0.9 : 1.1;
       
-      const img = document.querySelector(`.pane[data-pane="${pane}"] .pane-content img`);
-      if (!img) return;
-      
-      const rect = img.getBoundingClientRect();
-      
-      const mouseX = event.clientX - rect.left;
-      const mouseY = event.clientY - rect.top;
-      
       const t = pane === 1 ? this.pane1Transform : this.pane2Transform;
       const oldScale = t.scale;
-      const newScale = Math.max(0.1, Math.min(10, oldScale * factor));
-      
-      const scaleChange = newScale / oldScale;
-      t.x = mouseX - (mouseX - t.x) * scaleChange;
-      t.y = mouseY - (mouseY - t.y) * scaleChange;
+      const newScale = Math.max(t.minScale || 0.1, Math.min(10, oldScale * factor));
       t.scale = newScale;
       
       this.showZoomIndicator(Math.round(newScale * 100));
@@ -186,7 +175,7 @@ function fotoDecider() {
 
     zoomPane(pane, factor) {
       const t = pane === 1 ? this.pane1Transform : this.pane2Transform;
-      t.scale = Math.max(0.1, Math.min(10, t.scale * factor));
+      t.scale = Math.max(t.minScale || 0.1, Math.min(10, t.scale * factor));
       this.showZoomIndicator(Math.round(t.scale * 100));
     },
 
@@ -198,6 +187,31 @@ function fotoDecider() {
         this.pane2Transform.x += dx;
         this.pane2Transform.y += dy;
       }
+    },
+
+    handleDragStart(pane, event) {
+      event.preventDefault();
+      this.dragPane = pane;
+      this.dragStartX = event.clientX;
+      this.dragStartY = event.clientY;
+      this.dragStartTransform = { ...(pane === 1 ? this.pane1Transform : this.pane2Transform) };
+      document.addEventListener('mousemove', this.handleDragMove.bind(this));
+      document.addEventListener('mouseup', this.handleDragEnd.bind(this));
+    },
+
+    handleDragMove(event) {
+      if (!this.dragPane) return;
+      const dx = event.clientX - this.dragStartX;
+      const dy = event.clientY - this.dragStartY;
+      const t = this.dragPane === 1 ? this.pane1Transform : this.pane2Transform;
+      t.x = this.dragStartTransform.x + dx;
+      t.y = this.dragStartTransform.y + dy;
+    },
+
+    handleDragEnd() {
+      this.dragPane = null;
+      document.removeEventListener('mousemove', this.handleDragMove.bind(this));
+      document.removeEventListener('mouseup', this.handleDragEnd.bind(this));
     },
 
     handleKey(e) {

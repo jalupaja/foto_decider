@@ -65,18 +65,16 @@
     <div
       class="pane focused"
       data-pane="1"
-      data-label="A"
-      @click="focusPane(1)"
+      @mousedown="focusPane(1); handleDragStart(1, $event)"
       @wheel.prevent="zoomAtMouse(1, $event)"
     >
       <div class="pane-label">A</div>
-      <div class="pane-content">
+      <div class="pane-content" :style="getPaneStyle(1)">
         <img
           x-show="files.length > 0"
           :src="getPaneImageUrl(1)"
           @load="fitImageToPane(1)"
           draggable="false"
-          :style="getPaneStyle(1)"
         >
       </div>
       <div class="pane-mark" x-show="getPaneMark(1)" x-text="getPaneMark(1)"></div>
@@ -86,18 +84,16 @@
     <div
       class="pane"
       data-pane="2"
-      data-label="B"
-      @click="focusPane(2)"
+      @mousedown="focusPane(2); handleDragStart(2, $event)"
       @wheel.prevent="zoomAtMouse(2, $event)"
     >
       <div class="pane-label">B</div>
-      <div class="pane-content">
+      <div class="pane-content" :style="getPaneStyle(2)">
         <img
           x-show="files.length > 0"
           :src="getPaneImageUrl(2)"
           @load="fitImageToPane(2)"
           draggable="false"
-          :style="getPaneStyle(2)"
         >
       </div>
       <div class="pane-mark" x-show="getPaneMark(2)" x-text="getPaneMark(2)"></div>

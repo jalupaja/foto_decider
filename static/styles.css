@@ -222,6 +222,7 @@ main {
   flex: 1;
   position: relative;
   overflow: hidden;
+  cursor: grab;
   border: 3px solid transparent;
   cursor: grab;
   background: var(--bg);
@@ -280,14 +281,13 @@ main {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  transform-origin: center;
 }
 
 .pane-content img {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  transform-origin: center;
-  transition: transform 0.1s;
 }
 
 .pane-mark {
