@@ -46,7 +46,7 @@
             marked: marks[file.id] !== undefined,
             deleted: marks[file.id] === 3
           }"
-          @click="goTo(idx)"
+          @click="focusedPane === 1 ? index1 = idx : index2 = idx; scrollPreview()"
         >
           <img
             :src="`/api/thumbnail/${encodeURIComponent(file.id)}`"
@@ -65,15 +65,14 @@
     <div
       class="pane focused"
       data-pane="1"
-      @mousedown="focusPane(1); handleDragStart(1, $event)"
-      @wheel.prevent="zoomAtMouse(1, $event)"
+      @mousedown="focusPane(1)"
     >
-      <div class="pane-label">A</div>
-      <div class="pane-content" :style="getPaneStyle(1)">
+      <div class="pane-label pane-a">A</div>
+      <div class="pane-content">
         <img
           x-show="files.length > 0"
           :src="getPaneImageUrl(1)"
-          @load="fitImageToPane(1)"
+          @load="setupPanzoom(); updateMinScale(1)"
           draggable="false"
         >
       </div>
@@ -84,15 +83,14 @@
     <div
       class="pane"
       data-pane="2"
-      @mousedown="focusPane(2); handleDragStart(2, $event)"
-      @wheel.prevent="zoomAtMouse(2, $event)"
+      @mousedown="focusPane(2)"
     >
-      <div class="pane-label">B</div>
-      <div class="pane-content" :style="getPaneStyle(2)">
+      <div class="pane-label pane-b">B</div>
+      <div class="pane-content">
         <img
           x-show="files.length > 0"
           :src="getPaneImageUrl(2)"
-          @load="fitImageToPane(2)"
+          @load="setupPanzoom(); updateMinScale(2)"
           draggable="false"
         >
       </div>
@@ -111,7 +109,7 @@
       </template>
     </div>
     <div class="shortcuts">
-      Tab: Switch Pane | Space: Next | BkSp: Prev | ←→↑↓: Pan | +/-: Zoom | 1-9: Mark | Esc: Reset
+      Tab: Switch Pane | Space: Next | BkSp: Prev | Drag: Pan | Wheel: Zoom | 1-9: Mark | Esc: Reset
     </div>
   </footer>
 
