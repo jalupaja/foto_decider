@@ -63,9 +63,10 @@
 
   <main>
     <div
-      class="pane focused"
+      class="pane"
+      :class="{ focused: focusedPane === 1 }"
       data-pane="1"
-      @mousedown="focusPane(1)"
+      @click="focusPane(1)"
     >
       <div class="pane-label pane-a">A</div>
       <div class="pane-content">
@@ -82,8 +83,9 @@
 
     <div
       class="pane"
+      :class="{ focused: focusedPane === 2 }"
       data-pane="2"
-      @mousedown="focusPane(2)"
+      @click="focusPane(2)"
     >
       <div class="pane-label pane-b">B</div>
       <div class="pane-content">
@@ -109,7 +111,7 @@
       </template>
     </div>
     <div class="shortcuts">
-      Tab: Switch Pane | Space: Next | BkSp: Prev | Drag: Pan | Wheel: Zoom | 1-9: Mark | Esc: Reset
+      Tab/Enter: Switch Pane | Space: Next | BkSp: Prev | Drag: Pan | Wheel: Zoom | 1-9: Mark | Esc/Enter: Reset
     </div>
   </footer>
 

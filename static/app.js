@@ -30,7 +30,7 @@ function fotoDecider() {
         console.error('Failed to load folder:', err);
       }
 
-      document.addEventListener('keydown', (e) => this.handleKey(e), true);
+      document.addEventListener('keydown', (e) => this.handleKey(e));
       window.addEventListener('resize', () => this.handleResize());
       this.preloadLoop();
     },
@@ -50,6 +50,7 @@ function fotoDecider() {
           this.marks = {};
           this.index1 = 0;
           this.index2 = Math.min(1, this.files.length - 1);
+          this.focusedPane = 1;
           this.fullImageCache.clear();
           this.thumbCache = new Set();
           this.updatePreload();
@@ -67,16 +68,15 @@ function fotoDecider() {
       this.folderPath = '';
       this.index1 = 0;
       this.index2 = 1;
+      this.focusedPane = 1;
       this.fullImageCache.clear();
       this.thumbCache = new Set();
-      if (this.panzoomInstances[1]) {
-        this.panzoomInstances[1].destroy();
-        this.panzoomInstances[1] = null;
-      }
-      if (this.panzoomInstances[2]) {
-        this.panzoomInstances[2].destroy();
-        this.panzoomInstances[2] = null;
-      }
+      [1, 2].forEach(p => {
+        if (this.panzoomInstances[p]) {
+          this.panzoomInstances[p].destroy();
+          this.panzoomInstances[p] = null;
+        }
+      });
     },
 
     initPanzoom() {
@@ -107,7 +107,6 @@ function fotoDecider() {
           minScale: minScale,
           bounds: true,
           boundsPadding: 0,
-          contain: 'invert',
           cursor: 'grab'
         });
 
@@ -128,8 +127,7 @@ function fotoDecider() {
     },
 
     handleResize() {
-      this.updateMinScale(1);
-      this.updateMinScale(2);
+      [1, 2].forEach(pane => this.updateMinScale(pane));
     },
 
     updateMinScale(pane) {
@@ -143,7 +141,9 @@ function fotoDecider() {
       if (pz.scale < minScale) {
         pz.zoom(minScale, { animate: true });
       }
-      pz.options.minScale = minScale;
+      if (pz.options) {
+        pz.options.minScale = minScale;
+      }
     },
 
     goTo(index) {
@@ -209,22 +209,28 @@ function fotoDecider() {
       
       if (e.key === ' ') {
         e.preventDefault();
-        e.stopPropagation();
         this.goTo(this.getCurrentIndex() + 1);
         return;
       }
 
       if (e.key === 'Backspace') {
         e.preventDefault();
-        e.stopPropagation();
         this.goTo(this.getCurrentIndex() - 1);
+        return;
+      }
+
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const pz = this.panzoomInstances[this.focusedPane];
+        if (pz) {
+          pz.reset();
+        }
         return;
       }
 
       switch (e.key) {
         case 'Tab':
           e.preventDefault();
-          e.stopPropagation();
           this.focusPane(this.focusedPane === 1 ? 2 : 1);
           break;
         case 'ArrowLeft':
@@ -380,10 +386,6 @@ function fotoDecider() {
 
     getPaneName(pane) {
       return this.files[this.getPaneIndex(pane)]?.name || '';
-    },
-
-    getPaneClass(pane) {
-      return this.focusedPane === pane ? 'pane focused' : 'pane';
     }
   };
 }
