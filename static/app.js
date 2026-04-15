@@ -195,8 +195,9 @@ function fotoDecider() {
       this.dragStartX = event.clientX;
       this.dragStartY = event.clientY;
       this.dragStartTransform = { ...(pane === 1 ? this.pane1Transform : this.pane2Transform) };
-      document.addEventListener('mousemove', this.handleDragMove.bind(this));
-      document.addEventListener('mouseup', this.handleDragEnd.bind(this));
+      const self = this;
+      document.addEventListener('mousemove', function(e) { self.handleDragMove(e); });
+      document.addEventListener('mouseup', function(e) { self.handleDragEnd(e); });
     },
 
     handleDragMove(event) {
@@ -208,10 +209,8 @@ function fotoDecider() {
       t.y = this.dragStartTransform.y + dy;
     },
 
-    handleDragEnd() {
+    handleDragEnd(event) {
       this.dragPane = null;
-      document.removeEventListener('mousemove', this.handleDragMove.bind(this));
-      document.removeEventListener('mouseup', this.handleDragEnd.bind(this));
     },
 
     handleKey(e) {
