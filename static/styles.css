@@ -142,17 +142,20 @@ button:disabled {
 
 .preview-thumb.pane1-current {
   border: 3px solid var(--pane-a) !important;
-  box-shadow: 0 0 8px var(--pane-a);
+  border-radius: 4px;
+  box-shadow: 0 0 6px var(--pane-a);
 }
 
 .preview-thumb.pane2-current {
   border: 3px solid var(--pane-b) !important;
-  box-shadow: 0 0 8px var(--pane-b);
+  border-radius: 4px;
+  box-shadow: 0 0 6px var(--pane-b);
 }
 
 .preview-thumb.pane1-current.pane2-current {
   border: 3px solid var(--focus) !important;
-  box-shadow: 0 0 8px var(--focus);
+  border-radius: 4px;
+  box-shadow: 0 0 6px var(--focus);
 }
 
 .preview-badges {
@@ -196,11 +199,13 @@ main {
 }
 
 .pane[data-pane="1"] {
-  border-top: 3px solid var(--pane-a);
+  border: 3px solid var(--pane-a);
+  border-radius: 8px;
 }
 
 .pane[data-pane="2"] {
-  border-top: 3px solid var(--pane-b);
+  border: 3px solid var(--pane-b);
+  border-radius: 8px;
 }
 
 .pane.focused {
