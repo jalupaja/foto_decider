@@ -191,7 +191,7 @@ function fotoDecider() {
     getImageUrl(index) {
       if (index < 0 || index >= this.files.length) return null;
       const file = this.files[index];
-      return `/api/image/${encodeURIComponent(file.id)}`;
+      return `/api/display/${encodeURIComponent(file.id)}`;
     },
 
     getPaneImageUrl(pane) {

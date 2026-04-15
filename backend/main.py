@@ -70,15 +70,15 @@ def get_image_files(folder: str) -> list[dict]:
             })
     return files
 
-def create_thumbnail(source_path: str, cache_file: Path) -> bool:
+def create_thumbnail(source_path: str, cache_file: Path, size: tuple = (120, 120), quality: int = 85) -> bool:
     from PIL import Image
     
     try:
         with Image.open(source_path) as img:
             if img.mode in ('RGBA', 'P'):
                 img = img.convert('RGB')
-            img.thumbnail((120, 120), Image.Resampling.LANCZOS)
-            img.save(cache_file, "JPEG", quality=85)
+            img.thumbnail(size, Image.Resampling.LANCZOS)
+            img.save(cache_file, "JPEG", quality=quality)
         return True
     except Exception:
         pass
@@ -88,13 +88,15 @@ def create_thumbnail(source_path: str, cache_file: Path) -> bool:
         with rawpy.imread(source_path) as raw:
             thumb = raw.extract_thumb()
             if thumb.format == rawpy.ThumbFormat.JPEG:
-                with open(cache_file, 'wb') as f:
-                    f.write(thumb.data)
+                import io
+                thumb_img = Image.open(io.BytesIO(thumb.data))
+                thumb_img.thumbnail(size, Image.Resampling.LANCZOS)
+                thumb_img.save(cache_file, "JPEG", quality=quality)
             elif thumb.format == rawpy.ThumbFormat.BITMAP:
                 rgb = thumb.thumbnail
                 img = Image.fromarray(rgb)
-                img.thumbnail((120, 120), Image.Resampling.LANCZOS)
-                img.save(cache_file, "JPEG", quality=85)
+                img.thumbnail(size, Image.Resampling.LANCZOS)
+                img.save(cache_file, "JPEG", quality=quality)
         return True
     except Exception:
         pass
@@ -152,7 +154,7 @@ async def get_image(path: str):
 @app.get("/api/thumbnail/{path:path}")
 async def get_thumbnail(path: str):
     path = unquote(path)
-    cache_key = path
+    cache_key = f"thumb_{path}"
     if cache_key in state["thumbnail_cache"]:
         return FileResponse(state["thumbnail_cache"][cache_key])
     
@@ -164,11 +166,32 @@ async def get_thumbnail(path: str):
     
     cache_file = cache_dir / f"{uuid.uuid4().hex}.jpg"
     
-    if create_thumbnail(path, cache_file):
+    if create_thumbnail(path, cache_file, size=(120, 120), quality=85):
         state["thumbnail_cache"][cache_key] = str(cache_file)
         return FileResponse(str(cache_file))
     
     raise HTTPException(status_code=500, detail="Failed to create thumbnail")
+
+@app.get("/api/display/{path:path}")
+async def get_display(path: str):
+    path = unquote(path)
+    cache_key = f"display_{path}"
+    if cache_key in state["thumbnail_cache"]:
+        return FileResponse(state["thumbnail_cache"][cache_key])
+    
+    if not os.path.isfile(path):
+        raise HTTPException(status_code=404, detail="Image not found")
+    
+    cache_dir = Path(__file__).parent / ".thumbnails"
+    cache_dir.mkdir(exist_ok=True)
+    
+    cache_file = cache_dir / f"{uuid.uuid4().hex}.jpg"
+    
+    if create_thumbnail(path, cache_file, size=(2000, 2000), quality=90):
+        state["thumbnail_cache"][cache_key] = str(cache_file)
+        return FileResponse(str(cache_file))
+    
+    raise HTTPException(status_code=500, detail="Failed to create display image")
 
 @app.get("/api/bash")
 async def get_bash_commands() -> BashCommandsResponse:
