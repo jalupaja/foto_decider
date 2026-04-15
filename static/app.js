@@ -11,6 +11,7 @@ function fotoDecider() {
     bashCommands: {},
     bashFiles: {},
     fullImageCache: new Map(),
+    thumbCache: new Set(),
     maxFullImages: 15,
     panzoomInstances: { 1: null, 2: null },
     markNames: {
@@ -19,6 +20,7 @@ function fotoDecider() {
     },
 
     async init() {
+      window.app = this;
       try {
         const resp = await fetch('/api/folder');
         const data = await resp.json();
@@ -31,7 +33,6 @@ function fotoDecider() {
       }
 
       document.addEventListener('keydown', (e) => this.handleKey(e));
-      window.addEventListener('resize', () => this.handleResize());
       this.preloadLoop();
     },
 
@@ -80,14 +81,7 @@ function fotoDecider() {
     },
 
     initPanzoom() {
-      if (typeof Panzoom === 'undefined') {
-        const script = document.createElement('script');
-        script.src = 'https://unpkg.com/@panzoom/panzoom@4.6.1/dist/panzoom.min.js';
-        script.onload = () => this.setupPanzoom();
-        document.head.appendChild(script);
-      } else {
-        this.setupPanzoom();
-      }
+      this.setupPanzoom();
     },
 
     setupPanzoom() {
@@ -389,3 +383,14 @@ function fotoDecider() {
     }
   };
 }
+
+// Global resize handler
+let resizeTimeout;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimeout);
+  resizeTimeout = setTimeout(() => {
+    if (window.app && window.app.handleResize) {
+      window.app.handleResize();
+    }
+  }, 200);
+});
