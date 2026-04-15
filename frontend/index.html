@@ -6,7 +6,7 @@
   <title>Foto Decider</title>
   <link rel="stylesheet" href="/static/styles.css">
 </head>
-<body x-data="fotoDecider()" x-init="init()">
+<body x-data="fotoDecider()" x-init="init()" @keydown.window="handleKey($event)">
   <header>
     <h1>📷 Foto Decider</h1>
     <div class="header-actions">

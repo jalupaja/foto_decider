@@ -31,8 +31,7 @@ function fotoDecider() {
       } catch (err) {
         console.error('Failed to load folder:', err);
       }
-
-      document.addEventListener('keydown', (e) => this.handleKey(e));
+      
       this.preloadLoop();
     },
 
