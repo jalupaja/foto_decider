@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from urllib.parse import unquote
 import uvicorn
 
 IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.avif'}
@@ -27,6 +28,9 @@ app.add_middleware(
 
 class Marks(BaseModel):
     marks: dict[str, int]
+
+class FolderRequest(BaseModel):
+    path: str = ""
 
 class FolderResponse(BaseModel):
     folder: str
@@ -112,10 +116,12 @@ async def get_folder() -> FolderResponse:
     return FolderResponse(folder=state["folder"], files=files, total=len(files))
 
 @app.post("/api/folder")
-async def set_folder(payload: dict):
-    path = payload.get("path") or payload.get("folder") or list(payload.values())[0] if payload else ""
-    if not path or not os.path.isdir(path):
-        raise HTTPException(status_code=400, detail="Invalid folder path")
+async def set_folder(data: FolderRequest):
+    path = data.path.strip() if data.path else ""
+    if not path:
+        raise HTTPException(status_code=400, detail="Path is required")
+    if not os.path.isdir(path):
+        raise HTTPException(status_code=400, detail=f"Path does not exist: {path}")
     state["folder"] = os.path.abspath(path)
     state["marks"] = {}
     state["thumbnail_cache"].clear()
@@ -138,18 +144,20 @@ async def clear_marks():
 
 @app.get("/api/image/{path:path}")
 async def get_image(path: str):
+    path = unquote(path)
     if not os.path.isfile(path):
         raise HTTPException(status_code=404, detail="Image not found")
     return FileResponse(path)
 
 @app.get("/api/thumbnail/{path:path}")
 async def get_thumbnail(path: str):
+    path = unquote(path)
     cache_key = path
     if cache_key in state["thumbnail_cache"]:
         return FileResponse(state["thumbnail_cache"][cache_key])
     
     if not os.path.isfile(path):
-        raise HTTPException(status_code=404, detail="Image not found")
+        raise HTTPException(status_code=404, detail=f"Image not found: {path}")
     
     cache_dir = Path(__file__).parent / ".thumbnails"
     cache_dir.mkdir(exist_ok=True)
