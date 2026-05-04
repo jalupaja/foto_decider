@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 cd "$(dirname "$0")"
 
 # Check if dependencies are available, otherwise use nix-shell
