@@ -6,10 +6,10 @@
   <title>Foto Decider</title>
   <link rel="stylesheet" href="/static/styles.css">
 </head>
-<body x-data="fotoDecider()" x-init="init()" @keydown.window="handleKey($event)">
+<body x-data="fotoDecider()" x-init="init()" :class="{ 'fullscreen-mode': fullscreenPane }" @keydown.window="handleKey($event)">
   <header>
     <h1>📷 Foto Decider</h1>
-    <div class="header-actions">
+    <div class="header-left">
       <template x-if="!folder">
         <div style="display: flex; gap: 10px; align-items: center;">
           <input 
@@ -17,45 +17,69 @@
             x-model="folderPath" 
             @keydown.enter="loadFolder()" 
             placeholder="Enter folder path..." 
-            style="background: var(--bg-lighter); border: 1px solid #333; color: var(--text); padding: 8px 14px; border-radius: 6px; width: 400px; font-size: 13px;"
+            style="background: var(--bg); border: 1px solid #444; color: var(--text); padding: 8px 14px; border-radius: 6px; width: 280px; font-size: 13px;"
           >
           <button @click="loadFolder()" :disabled="!folderPath">Load Folder</button>
         </div>
       </template>
       <template x-if="folder">
         <span class="folder-info">
-          <span x-text="folder" style="max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
-          <button @click="clearFolder()" title="Close folder" style="padding: 4px 8px;">✕</button>
+          <span x-text="folder" style="max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
+          <button @click="clearFolder()" title="Close folder" style="padding: 8px 14px;">✕</button>
         </span>
       </template>
-      <span class="counter" x-text="files.length ? `${getCurrentIndex() + 1} / ${files.length}` : 'No images'"></span>
+      <input 
+        type="text" 
+        x-model="searchInput" 
+        @keydown.enter="applySearch()"
+        @blur="applySearch()"
+        placeholder="Search..." 
+        style="background: var(--bg); border: 1px solid #444; color: var(--text); padding: 8px 14px; border-radius: 6px; width: 120px; font-size: 13px;"
+      >
+      <button @click="clearSearch()" title="Clear search" style="padding: 8px 14px;">✕</button>
+      <span class="counter" x-text="files.length ? `${getCurrentIndex() + 1} / ${filteredIndices.length}` : 'No images'"></span>
     </div>
-    <div class="header-actions" style="margin-left: auto;">
+    <div class="header-center">
+      <div class="filter-group">
+        <button @click="toggleAllFilters()" class="filter-btn all-btn">All</button>
+      </div>
+      <div class="filter-separator"></div>
+      <div class="filter-group">
+        <button @click="markFilters.showUnmarked = !markFilters.showUnmarked; updateFilters()" class="filter-btn" :style="markFilters.showUnmarked ? 'border-color: var(--focus);' : 'opacity: 0.5'">[]</button>
+        <template x-for="i in 9" :key="i">
+          <button 
+            @click="markFilters[i] = !markFilters[i]; updateFilters()"
+            :style="markFilters[i] ? `background: var(--mark-${i}); border-color: var(--mark-${i}); color: white;` : ''"
+            class="filter-btn mark-btn"
+          >
+            <span x-text="i"></span>
+            <span class="filter-count" x-text="getMarkCount(i)"></span>
+          </button>
+        </template>
+      </div>
+    </div>
+    <div class="header-actions">
       <button @click="openBash()" :disabled="Object.keys(marks).length === 0">⚡ Bash</button>
-      <button @click="clearMarks()" :disabled="Object.keys(marks).length === 0">Clear Marks</button>
     </div>
   </header>
 
-    <div class="preview-container" id="previewContainer">
+  <div class="preview-container" id="previewContainer">
     <div class="preview-strip" id="previewStrip">
-      <template x-for="(file, idx) in files" :key="file.id">
+      <template x-for="idx in filteredIndices" :key="files[idx].id">
         <div
           class="preview-thumb"
-          :class="{
-            pane1-current: idx === index1,
-            pane2-current: idx === index2,
-            marked: marks[file.id] && marks[file.id].length > 0,
-            deleted: marks[file.id] && marks[file.id].includes(3)
-          }"
-          @click="focusedPane === 1 ? index1 = idx : index2 = idx; scrollPreview()"
+          :class="(index1 === idx ? 'pane1-current ' : '') + (index2 === idx ? 'pane2-current ' : '') + ((marks[files[idx].id] && marks[files[idx].id].includes(3)) ? 'deleted ' : '') + ((marks[files[idx].id] && marks[files[idx].id].length > 0) ? 'marked' : '')"
+          :title="files[idx].name"
+          @click="focusedPane === 1 ? index1 = idx : index2 = idx"
         >
           <img
-            :src="`/api/thumbnail/${encodeURIComponent(file.id)}`"
-            :alt="file.name"
+            :src="`/api/thumbnail/${encodeURIComponent(files[idx].id)}`"
+            :alt="files[idx].name"
             loading="lazy"
           >
           <div class="preview-badges">
-            <template x-for="mark in (marks[file.id] || [])" :key="mark">
+            <span x-show="files[idx].is_raw" class="mark-badge raw-badge" style="background: var(--danger);">RAW</span>
+            <template x-for="mark in (marks[files[idx].id] || [])" :key="mark">
               <span class="mark-badge" :style="`background: var(--mark-${mark})`" x-text="mark"></span>
             </template>
           </div>
@@ -68,59 +92,77 @@
     <div
       class="pane"
       :class="{ focused: focusedPane === 1 }"
+      x-show="!fullscreenPane || fullscreenPane === 1"
       data-pane="1"
       @click="focusPane(1)"
     >
-      <div class="pane-content">
+      <div class="pane-content" id="pane-content-1">
         <img
           x-show="files.length > 0"
           :src="getPaneImageUrl(1)"
-          @load="setupPanzoom(); updateMinScale(1)"
+          :style="`transform: rotate(${getRotation(getPaneFileId(1))}deg)`"
           draggable="false"
         >
       </div>
-      <div class="pane-marks" x-show="marks[files[getPaneIndex(1)]?.id]?.length > 0">
-        <template x-for="mark in (marks[files[getPaneIndex(1)]?.id] || [])" :key="mark">
+      <div class="pane-marks" x-show="marks[getPaneFileId(1)]?.length > 0">
+        <template x-for="mark in (marks[getPaneFileId(1)] || [])" :key="mark">
           <span class="mark-badge-lg" :style="`background: var(--mark-${mark})`" x-text="mark"></span>
         </template>
       </div>
       <div class="pane-info" x-text="getPaneName(1)"></div>
+      <div class="pane-controls" x-show="getPaneFileId(1)">
+        <button @click.stop="rotatePane(getPaneFileId(1), 90)" title="Rotate Left (R)">↺</button>
+        <button @click.stop="rotatePane(getPaneFileId(1), -90)" title="Rotate Right (L)">↻</button>
+      </div>
+      <div class="pane-nav-btns">
+        <button class="pane-nav-btn" @click.stop="goTo(-1)">‹</button>
+        <button class="pane-nav-btn" @click.stop="goTo(1)">›</button>
+      </div>
     </div>
 
     <div
       class="pane"
       :class="{ focused: focusedPane === 2 }"
+      x-show="!fullscreenPane || fullscreenPane === 2"
       data-pane="2"
       @click="focusPane(2)"
     >
-      <div class="pane-content">
+      <div class="pane-nav-btns">
+        <button class="pane-nav-btn" @click.stop="goTo(-1)">‹</button>
+        <button class="pane-nav-btn" @click.stop="goTo(1)">›</button>
+      </div>
+      <div class="pane-content" id="pane-content-2">
         <img
           x-show="files.length > 0"
           :src="getPaneImageUrl(2)"
-          @load="setupPanzoom(); updateMinScale(2)"
+          :style="`transform: rotate(${getRotation(getPaneFileId(2))}deg)`"
           draggable="false"
         >
       </div>
-      <div class="pane-marks" x-show="marks[files[getPaneIndex(2)]?.id]?.length > 0">
-        <template x-for="mark in (marks[files[getPaneIndex(2)]?.id] || [])" :key="mark">
+      <div class="pane-marks" x-show="marks[getPaneFileId(2)]?.length > 0">
+        <template x-for="mark in (marks[getPaneFileId(2)] || [])" :key="mark">
           <span class="mark-badge-lg" :style="`background: var(--mark-${mark})`" x-text="mark"></span>
         </template>
       </div>
       <div class="pane-info" x-text="getPaneName(2)"></div>
+      <div class="pane-controls" x-show="getPaneFileId(2)">
+        <button @click.stop="rotatePane(getPaneFileId(2), 90)" title="Rotate Left (R)">↺</button>
+        <button @click.stop="rotatePane(getPaneFileId(2), -90)" title="Rotate Right (L)">↻</button>
+      </div>
     </div>
   </main>
 
   <footer>
-    <div class="marks-legend">
-      <template x-for="i in 9" :key="i">
-        <div class="mark-item">
-          <span class="mark-key" x-text="i"></span>
-          <span class="mark-count" x-text="getMarkCount(i)"></span>
-        </div>
-      </template>
-    </div>
+      <div class="marks-legend">
+        <template x-for="i in 9" :key="i">
+          <button class="mark-btn-footer" @click="markCurrentImage(i)">
+            <span class="mark-key" :style="`color: var(--mark-${i})`" x-text="i"></span>
+            <span class="mark-count" x-text="getMarkCount(i)"></span>
+          </button>
+        </template>
+      </div>
     <div class="shortcuts">
-      Tab: Switch Pane | Space: Next | BkSp: Prev | Arrows: Pan | +/-: Zoom | 1-9: Mark | Esc: Reset
+      R/L: Rotate | F: Fullscreen | Ctrl+=: Sync Panes | Tab: Switch | Space: Next | Esc: Exit Fullscreen
     </div>
   </footer>
 
@@ -128,18 +170,28 @@
 
   <!-- Bash Modal -->
   <div class="modal" x-show="showBash" x-transition @click.self="showBash = false">
-    <div class="modal-content">
-      <h2>⚡ Bash Commands</h2>
-      <template x-for="(cmd, mark) in bashCommands" :key="mark">
-        <div class="command-group">
-          <h3>Mark <span x-text="mark"></span> - <span x-text="markNames[mark]"></span> (<span x-text="bashFiles[mark]?.length || 0"></span> files)</h3>
-          <div class="bash-command">
-            <code x-text="cmd"></code>
-            <button @click="copyCommand(cmd)">Copy</button>
+    <div class="modal-content" style="max-width: 900px;">
+      <h2>⚡ File Operations</h2>
+      <template x-for="mark in [1,2,3,4,5,6,7,8,9]" :key="mark">
+        <div class="command-group" x-show="bashFiles[mark]?.length > 0">
+          <h3>
+            <span x-text="mark"></span>
+            (<span x-text="bashFiles[mark]?.length || 0"></span> files)
+          </h3>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+            <button @click="getFilenames(mark)" style="flex: 1; min-width: 120px;">📋 Copy Names</button>
+            <input type="text" x-model="bashDest[mark]" placeholder="Destination path..." 
+              style="flex: 2; min-width: 200px; background: var(--bg); border: 1px solid #333; color: var(--text); padding: 8px; border-radius: 4px;">
+            <button @click="bashCopy(mark)" :disabled="!bashDest[mark]" style="flex: 1; min-width: 100px;">📁 Copy</button>
+            <button @click="bashMove(mark)" :disabled="!bashDest[mark]" style="flex: 1; min-width: 100px;">📂 Move</button>
+            <button @click="bashDelete(mark)" style="flex: 1; min-width: 100px; background: var(--danger); border-color: var(--danger);">🗑️ Delete</button>
           </div>
+          <div x-show="bashResults[mark]" x-text="bashResults[mark]" 
+            :style="bashResults[mark]?.startsWith('Error') ? 'color: var(--danger)' : 'color: var(--success)'"
+            style="font-size: 12px; margin-top: 5px;"></div>
         </div>
       </template>
-      <template x-if="Object.keys(bashCommands).length === 0">
+      <template x-if="Object.keys(marks).length === 0">
         <p style="color: var(--text-dim);">No marked files</p>
       </template>
       <button @click="showBash = false" style="width: 100%; margin-top: 20px;">Close</button>
