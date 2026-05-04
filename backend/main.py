@@ -8,7 +8,7 @@ from typing import Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from urllib.parse import unquote
@@ -16,6 +16,11 @@ import uvicorn
 
 IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.avif'}
 RAW_EXTENSIONS = {'.raw', '.cr2', '.cr3', '.nef', '.arw', '.dng', '.orf', '.rw2', '.raf', '.pef', '.srw'}
+
+MARK_NAMES = {
+    1: "Keep", 2: "Review", 3: "Delete", 4: "Similar",
+    5: "Backup", 6: "Edit", 7: "HDR", 8: "Bracket", 9: "Other"
+}
 
 app = FastAPI()
 app.add_middleware(
@@ -27,7 +32,7 @@ app.add_middleware(
 )
 
 class Marks(BaseModel):
-    marks: dict[str, int]
+    marks: dict[str, list[int]]
 
 class FolderRequest(BaseModel):
     path: str = ""
@@ -37,9 +42,10 @@ class FolderResponse(BaseModel):
     files: list[dict]
     total: int
 
-class BashCommandsResponse(BaseModel):
-    commands: dict[str, str]
-    files_by_mark: dict[str, list[str]]
+class BashRequest(BaseModel):
+    mark: int
+    action: str
+    destination: Optional[str] = None
 
 static_path = Path(__file__).parent.parent / "static"
 frontend_path = Path(__file__).parent.parent / "frontend"
@@ -194,51 +200,123 @@ async def get_display(path: str):
     raise HTTPException(status_code=500, detail="Failed to create display image")
 
 @app.get("/api/bash")
-async def get_bash_commands() -> BashCommandsResponse:
-    if not state["folder"] or not state["marks"]:
-        return BashCommandsResponse(commands={}, files_by_mark={})
-    
-    mark_names = {
-        1: "keep", 2: "review", 3: "delete", 4: "similar",
-        5: "backup", 6: "edit", 7: "hdr", 8: "bracket", 9: "other"
-    }
-    
-    files_by_mark: dict[str, list[str]] = {str(i): [] for i in range(1, 10)}
-    
-    for file_id, mark in state["marks"].items():
-        mark_str = str(mark)
-        if mark_str in files_by_mark:
-            files_by_mark[mark_str].append(file_id)
-    
-    commands = {}
-    
-    for mark_str, files in files_by_mark.items():
-        if files:
-            mark_num = int(mark_str)
-            name = mark_names.get(mark_num, f"mark_{mark_num}")
-            
-            if mark_num == 3:
-                cmd = "rm " + " ".join(f'"{f}"' for f in files)
-            else:
-                cmd = f'mkdir -p "foto_decider_{name}"\nmv ' + " ".join(f'"{f}"' for f in files) + f' "foto_decider_{name}/"'
-            
-            commands[mark_str] = cmd
-    
-    return BashCommandsResponse(commands=commands, files_by_mark=files_by_mark)
-
-@app.get("/api/file-list")
-async def get_file_list(mark: Optional[str] = None):
+async def get_bash_data():
     if not state["marks"]:
-        return {"files": []}
+        return JSONResponse({"files_by_mark": {}, "mark_names": MARK_NAMES})
     
-    if mark:
-        files = [fid for fid, m in state["marks"].items() if str(m) == mark]
-    else:
-        files = list(state["marks"].keys())
+    files_by_mark: dict[int, list[str]] = {i: [] for i in range(1, 10)}
     
-    return {"files": files}
+    for file_id, marks_list in state["marks"].items():
+        for mark in marks_list:
+            if mark in files_by_mark:
+                files_by_mark[mark].append(file_id)
+    
+    return JSONResponse({
+        "files_by_mark": {str(k): v for k, v in files_by_mark.items()},
+        "mark_names": MARK_NAMES
+    })
 
-def run(port: int = 8000, folder: Optional[str] = None):
+@app.post("/api/bash/copy")
+async def bash_copy(data: BashRequest):
+    files = [fid for fid, marks in state["marks"].items() if data.mark in marks]
+    if not files:
+        return JSONResponse({"success": False, "message": "No files found"})
+    
+    if not data.destination:
+        return JSONResponse({"success": False, "message": "Destination required"})
+    
+    dest = Path(data.destination)
+    if not dest.is_absolute():
+        return JSONResponse({"success": False, "message": "Use absolute path"})
+    
+    dest.mkdir(parents=True, exist_ok=True)
+    copied = 0
+    errors = []
+    
+    for f in files:
+        try:
+            shutil.copy2(f, dest / Path(f).name)
+            copied += 1
+        except Exception as e:
+            errors.append(f"{Path(f).name}: {str(e)}")
+    
+    return JSONResponse({
+        "success": True,
+        "copied": copied,
+        "errors": errors,
+        "command": f"cp {' '.join(f'\"{Path(f).name}\"' for f in files)} \"{dest}\""
+    })
+
+@app.post("/api/bash/move")
+async def bash_move(data: BashRequest):
+    files = [fid for fid, marks in state["marks"].items() if data.mark in marks]
+    if not files:
+        return JSONResponse({"success": False, "message": "No files found"})
+    
+    if not data.destination:
+        return JSONResponse({"success": False, "message": "Destination required"})
+    
+    dest = Path(data.destination)
+    if not dest.is_absolute():
+        return JSONResponse({"success": False, "message": "Use absolute path"})
+    
+    dest.mkdir(parents=True, exist_ok=True)
+    moved = 0
+    errors = []
+    
+    for f in files:
+        try:
+            shutil.move(f, dest / Path(f).name)
+            moved += 1
+        except Exception as e:
+            errors.append(f"{Path(f).name}: {str(e)}")
+    
+    return JSONResponse({
+        "success": True,
+        "moved": moved,
+        "errors": errors,
+        "command": f"mv {' '.join(f'\"{Path(f).name}\"' for f in files)} \"{dest}\""
+    })
+
+@app.post("/api/bash/delete")
+async def bash_delete(data: BashRequest):
+    files = [fid for fid, marks in state["marks"].items() if data.mark in marks]
+    if not files:
+        return JSONResponse({"success": False, "message": "No files found"})
+    
+    deleted = 0
+    errors = []
+    
+    for f in files:
+        try:
+            os.remove(f)
+            deleted += 1
+        except Exception as e:
+            errors.append(f"{Path(f).name}: {str(e)}")
+    
+    return JSONResponse({
+        "success": True,
+        "deleted": deleted,
+        "errors": errors,
+        "command": f"rm {' '.join(f'\"{f}\"' for f in files)}"
+    })
+
+@app.post("/api/bash/filenames")
+async def bash_filenames(data: BashRequest):
+    files = [fid for fid, marks in state["marks"].items() if data.mark in marks]
+    if not files:
+        return JSONResponse({"success": False, "message": "No files found"})
+    
+    filenames = [Path(f).name for f in files]
+    
+    return JSONResponse({
+        "success": True,
+        "filenames": filenames,
+        "count": len(filenames)
+    })
+
+def run(port: int = 8080, folder: Optional[str] = None):
+    print(f"running on port {port}")
     if folder:
         state["folder"] = os.path.abspath(folder)
     

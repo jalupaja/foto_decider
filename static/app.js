@@ -6,30 +6,129 @@ function fotoDecider() {
     index1: 0,
     index2: 1,
     focusedPane: 1,
+    pane1ImageUrl: null,
+    pane2ImageUrl: null,
     marks: {},
     showBash: false,
     bashCommands: {},
     bashFiles: {},
+    bashDest: {},
+    bashResults: {},
+    searchInput: '',
+    searchQuery: '',
+    markFilters: { 1: true, 2: true, 3: true, 4: true, 5: true, 6: true, 7: true, 8: true, 9: true, showUnmarked: true },
+    filteredIndices: [],
     fullImageCache: new Map(),
     thumbCache: new Set(),
     maxFullImages: 15,
     panzoomInstances: { 1: null, 2: null },
-    markNames: {
-      1: 'Keep', 2: 'Review', 3: 'Delete', 4: 'Similar',
-      5: 'Backup', 6: 'Edit', 7: 'HDR', 8: 'Bracket', 9: 'Other'
+    rotations: {},
+    fullscreenPane: null,
+
+    applySearch() {
+      this.searchQuery = this.searchInput;
+      this.updateFilteredIndices();
+    },
+
+    clearSearch() {
+      this.searchInput = '';
+      this.searchQuery = '';
+      this.updateFilteredIndices();
+    },
+
+    toggleAllFilters() {
+      const allEnabled = this.markFilters[1] && this.markFilters[2] && this.markFilters[3] && 
+                        this.markFilters[4] && this.markFilters[5] && this.markFilters[6] && 
+                        this.markFilters[7] && this.markFilters[8] && this.markFilters[9] &&
+                        this.markFilters.showUnmarked;
+      if (allEnabled) {
+        for (let i = 1; i <= 9; i++) {
+          this.markFilters[i] = false;
+        }
+        this.markFilters.showUnmarked = false;
+      } else {
+        for (let i = 1; i <= 9; i++) {
+          this.markFilters[i] = true;
+        }
+        this.markFilters.showUnmarked = true;
+      }
+      this.updateFilteredIndices();
+    },
+
+    updateFilters() {
+      this.updateFilteredIndices();
+    },
+
+    matchesSearch(filename) {
+      if (!this.searchQuery) return true;
+      const query = this.searchQuery.toLowerCase();
+      const name = filename.toLowerCase();
+      if (query.includes('*')) {
+        const pattern = query.replace(/\*/g, '.*');
+        return new RegExp(pattern).test(name);
+      }
+      return name.includes(query);
+    },
+
+    updateFilteredIndices() {
+      if (!this.files || this.files.length === 0) {
+        this.filteredIndices = [];
+        return;
+      }
+      const newIndices = [];
+      for (let i = 0; i < this.files.length; i++) {
+        const f = this.files[i];
+        if (this.matchesSearch(f.name) && this.matchesMarkFilter(f.id)) {
+          newIndices.push(i);
+        }
+      }
+      this.filteredIndices = newIndices;
+    },
+
+    matchesMarkFilter(fileId) {
+      const fileMarks = this.marks[fileId] || [];
+      if (fileMarks.length === 0) {
+        return this.markFilters.showUnmarked;
+      }
+      return fileMarks.some(m => this.markFilters[m]);
+    },
+
+    getPaneFileId(pane) {
+      if (pane === 1) {
+        return this.files[this.index1]?.id || null;
+      } else {
+        return this.files[this.index2]?.id || null;
+      }
+    },
+
+    goToFile(fileId) {
+      const idx = this.files.findIndex(f => f.id === fileId);
+      if (idx === -1) return;
+      if (this.focusedPane === 1) {
+        this.index1 = idx;
+      } else {
+        this.index2 = idx;
+      }
+      this.updatePreload();
+      this.scrollPreview();
     },
 
     async init() {
       window.app = this;
+      this.focusPane(1);
+      this.$nextTick(() => this.setupPanzoom());
       try {
         const resp = await fetch('/api/folder');
         const data = await resp.json();
         if (data.folder) {
           this.folder = data.folder;
           this.files = data.files;
+          this.updatePreload();
         }
+        this.updateFilteredIndices();
       } catch (err) {
         console.error('Failed to load folder:', err);
+        this.updateFilteredIndices();
       }
       
       this.preloadLoop();
@@ -51,8 +150,11 @@ function fotoDecider() {
           this.index1 = 0;
           this.index2 = Math.min(1, this.files.length - 1);
           this.focusedPane = 1;
+          this.pane1ImageUrl = null;
+          this.pane2ImageUrl = null;
           this.fullImageCache.clear();
           this.thumbCache = new Set();
+          this.updateFilteredIndices();
           this.updatePreload();
           this.$nextTick(() => this.initPanzoom());
         }
@@ -85,13 +187,11 @@ function fotoDecider() {
 
     setupPanzoom() {
       [1, 2].forEach(pane => {
+        if (this.panzoomInstances[pane]) return;
+        
         const content = document.querySelector(`.pane[data-pane="${pane}"] .pane-content`);
         const img = content?.querySelector('img');
         if (!img || !content) return;
-
-        if (this.panzoomInstances[pane]) {
-          this.panzoomInstances[pane].destroy();
-        }
 
         const minScale = this.getMinScale(img, pane);
         
@@ -139,19 +239,21 @@ function fotoDecider() {
       }
     },
 
-    goTo(index) {
-      if (index < 0 || index >= this.files.length) return;
+    goTo(delta) {
+      if (this.filteredIndices.length === 0) return;
+      const currentIdx = this.focusedPane === 1 ? this.index1 : this.index2;
+      const currentFilteredPos = this.filteredIndices.indexOf(currentIdx);
+      let newFilteredPos = currentFilteredPos + delta;
+      if (newFilteredPos < 0) newFilteredPos = this.filteredIndices.length - 1;
+      if (newFilteredPos >= this.filteredIndices.length) newFilteredPos = 0;
+      const newIdx = this.filteredIndices[newFilteredPos];
       if (this.focusedPane === 1) {
-        this.index1 = index;
+        this.index1 = newIdx;
       } else {
-        this.index2 = index;
+        this.index2 = newIdx;
       }
       this.updatePreload();
       this.scrollPreview();
-      
-      this.$nextTick(() => {
-        this.updateMinScale(this.focusedPane);
-      });
     },
 
     scrollPreview() {
@@ -194,24 +296,41 @@ function fotoDecider() {
     },
 
     getPaneImageUrl(pane) {
-      return this.getImageUrl(this.getPaneIndex(pane));
+      const idx = pane === 1 ? this.index1 : this.index2;
+      const file = this.files[idx];
+      if (!file) return null;
+      if (pane === 1 && this.pane1ImageUrl && this.pane1ImageUrl.endsWith(file.id)) {
+        return this.pane1ImageUrl;
+      }
+      if (pane === 2 && this.pane2ImageUrl && this.pane2ImageUrl.endsWith(file.id)) {
+        return this.pane2ImageUrl;
+      }
+      const url = `/api/display/${encodeURIComponent(file.id)}`;
+      if (pane === 1) {
+        this.pane1ImageUrl = url;
+      } else {
+        this.pane2ImageUrl = url;
+      }
+      return url;
     },
 
     handleKey(e) {
       if (e.target.tagName === 'INPUT') return;
       
-      const pz = this.panzoomInstances[this.focusedPane];
+      const pz = this.fullscreenPane 
+        ? this.panzoomInstances[this.fullscreenPane] 
+        : this.panzoomInstances[this.focusedPane];
       
       switch (e.key) {
         case ' ':
           e.preventDefault();
           e.stopPropagation();
-          this.goTo(this.getCurrentIndex() + 1);
+          this.goTo(1);
           break;
         case 'Backspace':
           e.preventDefault();
           e.stopPropagation();
-          this.goTo(this.getCurrentIndex() - 1);
+          this.goTo(-1);
           break;
         case 'Tab':
           e.preventDefault();
@@ -223,7 +342,7 @@ function fotoDecider() {
             this.focusPane(this.focusedPane === 1 ? 2 : 1);
           } else if (pz) {
             e.preventDefault();
-            pz.pan(30, 0);
+            pz.pan(30, 0, { animate: true });
           }
           break;
         case 'ArrowRight':
@@ -232,39 +351,64 @@ function fotoDecider() {
             this.focusPane(this.focusedPane === 1 ? 2 : 1);
           } else if (pz) {
             e.preventDefault();
-            pz.pan(-30, 0);
+            pz.pan(-30, 0, { animate: true });
           }
           break;
         case 'ArrowUp':
           if (pz) {
             e.preventDefault();
-            pz.pan(0, 30);
+            pz.pan(0, 30, { animate: true });
           }
           break;
         case 'ArrowDown':
           if (pz) {
             e.preventDefault();
-            pz.pan(0, -30);
+            pz.pan(0, -30, { animate: true });
           }
           break;
         case '+':
         case '=':
-          if (pz) {
+          if (e.ctrlKey || e.metaKey) {
             e.preventDefault();
-            const rect = pz.element.getBoundingClientRect();
-            pz.zoom(1.2, { clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 });
+            this.syncPanes();
+          } else if (pz) {
+            e.preventDefault();
+            pz.zoom(1.2, { animate: true });
           }
           break;
         case '-':
+        case '_':
           if (pz) {
             e.preventDefault();
-            const rect = pz.element.getBoundingClientRect();
-            pz.zoom(0.8, { clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 });
+            pz.zoom(0.8, { animate: true });
           }
           break;
         case 'Escape':
-          if (pz) {
-            pz.reset();
+          if (this.showBash) {
+            this.showBash = false;
+          } else if (this.fullscreenPane) {
+            this.toggleFullscreen();
+          } else if (pz) {
+            pz.reset({ animate: true });
+          }
+          break;
+        case 'f':
+        case 'F':
+          e.preventDefault();
+          this.toggleFullscreen();
+          break;
+        case 'r':
+        case 'R':
+          if (!e.ctrlKey && !e.metaKey) {
+            e.preventDefault();
+            this.rotateCurrentPane(90);
+          }
+          break;
+        case 'l':
+        case 'L':
+          if (!e.ctrlKey && !e.metaKey) {
+            e.preventDefault();
+            this.rotateCurrentPane(-90);
           }
           break;
         default:
@@ -272,6 +416,42 @@ function fotoDecider() {
             e.preventDefault();
             this.markCurrentImage(parseInt(e.key));
           }
+      }
+    },
+
+    rotatePane(fileId, degrees) {
+      if (!fileId) return;
+      const current = this.rotations[fileId] || 0;
+      this.rotations[fileId] = (current + degrees + 360) % 360;
+    },
+
+    rotateCurrentPane(degrees) {
+      const idx = this.getCurrentIndex();
+      const file = this.files[idx];
+      if (file) {
+        this.rotatePane(file.id, degrees);
+      }
+    },
+
+    getRotation(fileId) {
+      return this.rotations[fileId] || 0;
+    },
+
+    toggleFullscreen() {
+      if (this.fullscreenPane) {
+        this.fullscreenPane = null;
+      } else {
+        this.fullscreenPane = this.focusedPane;
+      }
+    },
+
+    syncPanes() {
+      const otherPane = this.focusedPane === 1 ? 2 : 1;
+      const currentIdx = this.focusedPane === 1 ? this.index1 : this.index2;
+      if (otherPane === 1) {
+        this.index1 = currentIdx;
+      } else {
+        this.index2 = currentIdx;
       }
     },
 
@@ -306,6 +486,15 @@ function fotoDecider() {
       return count || '-';
     },
 
+    getUnmarkedCount() {
+      const markedIds = new Set(Object.keys(this.marks));
+      let count = 0;
+      this.files.forEach(f => {
+        if (!markedIds.has(f.id)) count++;
+      });
+      return count || '-';
+    },
+
     async saveMarks() {
       try {
         await fetch('/api/marks', {
@@ -332,16 +521,122 @@ function fotoDecider() {
       try {
         const resp = await fetch('/api/bash');
         const data = await resp.json();
-        this.bashCommands = data.commands || {};
-        this.bashFiles = data.files_by_mark || {};
+        this.bashFiles = {};
+        for (const [mark, files] of Object.entries(data.files_by_mark)) {
+          this.bashFiles[parseInt(mark)] = files;
+        }
         this.showBash = true;
+        this.bashDest = {};
+        this.bashResults = {};
       } catch (err) {
-        console.error('Failed to load bash commands:', err);
+        console.error('Failed to load bash data:', err);
+      }
+    },
+
+    async getFilenames(mark) {
+      try {
+        const resp = await fetch('/api/bash/filenames', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mark: mark, action: 'filenames' })
+        });
+        const data = await resp.json();
+        if (data.success) {
+          const copied = await this.copyToClipboard(data.filenames.join(' '));
+          if (copied) {
+            this.bashResults[mark] = `Copied ${data.filenames.length} filenames`;
+          } else {
+            this.bashResults[mark] = 'Copy: clipboard not available (try HTTPS)';
+          }
+        } else {
+          this.bashResults[mark] = 'Error: ' + data.message;
+        }
+      } catch (err) {
+        this.bashResults[mark] = 'Error: ' + err.message;
+      }
+    },
+
+    async bashCopy(mark) {
+      try {
+        const resp = await fetch('/api/bash/copy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mark: mark, action: 'copy', destination: this.bashDest[mark] })
+        });
+        const data = await resp.json();
+        this.bashResults[mark] = data.success ? `Copied ${data.copied} files` : 'Error: ' + data.message;
+      } catch (err) {
+        this.bashResults[mark] = 'Error: ' + err.message;
+      }
+    },
+
+    async bashMove(mark) {
+      try {
+        const resp = await fetch('/api/bash/move', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mark: mark, action: 'move', destination: this.bashDest[mark] })
+        });
+        const data = await resp.json();
+        this.bashResults[mark] = data.success ? `Moved ${data.moved} files` : 'Error: ' + data.message;
+        if (data.success) {
+          await this.loadMarks();
+        }
+      } catch (err) {
+        this.bashResults[mark] = 'Error: ' + err.message;
+      }
+    },
+
+    async bashDelete(mark) {
+      if (!confirm(`Delete all files with mark ${mark}?`)) return;
+      try {
+        const resp = await fetch('/api/bash/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mark: mark, action: 'delete' })
+        });
+        const data = await resp.json();
+        this.bashResults[mark] = data.success ? `Deleted ${data.deleted} files` : 'Error: ' + data.message;
+        if (data.success) {
+          await this.loadMarks();
+        }
+      } catch (err) {
+        this.bashResults[mark] = 'Error: ' + err.message;
+      }
+    },
+
+    async loadMarks() {
+      try {
+        const resp = await fetch('/api/marks');
+        this.marks = await resp.json();
+      } catch (err) {
+        console.error('Failed to load marks:', err);
+      }
+    },
+
+    async copyToClipboard(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        return true;
+      } catch (err) {
+        document.body.removeChild(textarea);
+        return false;
       }
     },
 
     copyCommand(cmd) {
-      navigator.clipboard.writeText(cmd).then(() => {
+      this.copyToClipboard(cmd).then(() => {
         const btn = event.target;
         const orig = btn.textContent;
         btn.textContent = 'Copied!';
@@ -356,8 +651,7 @@ function fotoDecider() {
     updatePreload() {
       if (this.files.length === 0) return;
       
-      const thumbPreloadCount = 100;
-      const fullPreloadCount = 10;
+      const thumbPreloadCount = 50;
       const indices = [this.index1, this.index2];
       
       const preloadThumb = (idx) => {
@@ -378,22 +672,28 @@ function fotoDecider() {
         }
       });
       
-      indices.forEach(startIdx => {
-        for (let i = startIdx; i < Math.min(this.files.length, startIdx + fullPreloadCount); i++) {
-          const file = this.files[i];
-          if (!this.fullImageCache.has(file.id)) {
-            const img = new Image();
-            img.src = this.getImageUrl(i);
-            this.fullImageCache.set(file.id, true);
-          }
+      const preloadFull = (idx) => {
+        const file = this.files[idx];
+        if (!file || this.fullImageCache.has(file.id)) return;
+        const img = new Image();
+        img.src = this.getImageUrl(idx);
+        this.fullImageCache.set(file.id, true);
+      };
+      
+      indices.forEach(idx => {
+        for (let i = idx; i < Math.min(this.files.length, idx + 10); i++) {
+          preloadFull(i);
+        }
+        for (let i = idx - 1; i >= Math.max(0, idx - 5); i--) {
+          preloadFull(i);
         }
       });
       
-      if (this.fullImageCache.size > this.maxFullImages) {
+      if (this.fullImageCache.size > 30) {
         const toDelete = [];
         for (const id of this.fullImageCache.keys()) {
           const idx = this.files.findIndex(f => f.id === id);
-          const farFromBoth = Math.abs(idx - this.index1) > this.maxFullImages && Math.abs(idx - this.index2) > this.maxFullImages;
+          const farFromBoth = Math.abs(idx - this.index1) > 15 && Math.abs(idx - this.index2) > 15;
           if (idx === -1 || farFromBoth) {
             toDelete.push(id);
           }
@@ -416,6 +716,16 @@ function fotoDecider() {
 
     getPaneName(pane) {
       return this.files[this.getPaneIndex(pane)]?.name || '';
+    },
+
+    getThumbClass(idx, fileId) {
+      const classes = [];
+      if (idx === this.index1) classes.push('pane1-current');
+      if (idx === this.index2) classes.push('pane2-current');
+      const fileMarks = this.marks[fileId];
+      if (fileMarks && fileMarks.includes(3)) classes.push('deleted');
+      if (fileMarks && fileMarks.length > 0) classes.push('marked');
+      return classes.join(' ');
     }
   };
 }

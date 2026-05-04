@@ -1,5 +1,18 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+main {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
 :root {
   --bg: #1a1a2e;
   --bg-light: #16213e;
@@ -23,35 +36,302 @@
   --mark-9: #607d8b;
 }
 
-body {
-  font-family: system-ui, -apple-system, sans-serif;
-  background: var(--bg);
+@media (max-device-width: 768px) {
+  header {
+    padding: 8px 12px;
+    gap: 10px;
+  }
+  
+  header h1 {
+    font-size: 16px;
+    width: 100%;
+    text-align: center;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #333;
+    margin-bottom: 4px;
+  }
+  
+  .header-left {
+    width: 100%;
+    justify-content: center;
+    gap: 6px;
+  }
+  
+  .header-center {
+    width: 100%;
+    min-width: unset;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .filter-group {
+    padding: 4px 6px;
+  }
+  
+  header input[type="text"] {
+    width: 100px !important;
+    font-size: 11px !important;
+    padding: 6px 8px !important;
+  }
+  
+  .filter-btn {
+    font-size: 12px;
+    padding: 10px 12px;
+    min-width: 40px;
+    min-height: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+  }
+  
+  .filter-btn .filter-count {
+    font-size: 9px;
+    opacity: 0.7;
+  }
+  
+  .filter-btn.mark-btn {
+    min-width: 40px;
+    padding: 10px 10px;
+  }
+  
+  .filter-separator {
+    height: 20px;
+  }
+  
+  .header-actions {
+    width: 100%;
+    justify-content: center;
+    padding-top: 8px;
+    border-top: 1px solid #333;
+  }
+  
+  .preview-container {
+    height: 70px;
+  }
+  
+  .preview-thumb {
+    width: 55px;
+    height: 55px;
+  }
+  
+  main {
+    flex-direction: column;
+  }
+  
+  .pane {
+    flex: none;
+    height: 50vh;
+    position: relative;
+  }
+  
+  .nav-btn {
+    display: none !important;
+  }
+  
+  footer {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 12px;
+  }
+  
+  .marks-legend {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .shortcuts {
+    display: none;
+  }
+}
+
+@media (max-device-width: 480px) {
+  header h1 {
+    font-size: 14px;
+  }
+  
+  .header-left {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  
+  .header-center {
+    gap: 3px;
+  }
+  
+  .filter-group {
+    padding: 3px 4px;
+    gap: 2px;
+  }
+  
+  .filter-btn {
+    font-size: 11px;
+    padding: 8px 10px;
+    min-width: 36px;
+    min-height: 36px;
+  }
+  
+  .filter-btn .filter-count {
+    font-size: 8px;
+  }
+  
+  .filter-btn.mark-btn {
+    min-width: 36px;
+    padding: 8px 8px;
+  }
+  
+  .filter-separator {
+    display: none;
+  }
+  
+  .counter {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+}
+
+.pane-nav-btns {
+  display: none;
+}
+
+@media (max-device-width: 768px) {
+  .pane-nav-btns {
+    display: flex;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 100%;
+    justify-content: space-between;
+    padding: 0 5px;
+    box-sizing: border-box;
+    pointer-events: none;
+    z-index: 10;
+  }
+  
+  .pane-nav-btns button {
+    pointer-events: auto;
+  }
+  
+  .pane-nav-btn {
+    background: rgba(0,0,0,0.5);
+    color: white;
+    border: none;
+    width: 35px;
+    height: 50px;
+    font-size: 24px;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  
+  .pane-nav-btn:hover {
+    background: rgba(0,0,0,0.8);
+  }
+}
+
+.mark-btn-footer {
+  background: var(--bg-lighter);
+  border: 1px solid #333;
   color: var(--text);
-  height: 100vh;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  align-items: center;
+  gap: 2px;
+  min-width: 44px;
+}
+
+.mark-btn-footer:hover {
+  border-color: var(--accent);
+}
+
+.mark-btn-footer .mark-key {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.mark-btn-footer .mark-count {
+  font-size: 20px;
+  color: var(--text-dim);
+}
+
+.preview-thumb {
+    width: 45px;
+    height: 45px;
+  }
+  
+  .nav-btn {
+    width: 24px;
+    height: 50px;
+    font-size: 22px;
+  }
+  
+  .pane-info {
+    font-size: 9px;
+  }
+  
+  .mark-btn-footer {
+    min-width: 30px;
+    padding: 3px 5px;
+  }
+  
+  .mark-btn-footer .mark-key {
+    font-size: 14px;
+  }
+  
+  .mark-btn-footer .mark-count {
+    font-size: 10px;
+  }
 }
 
 header {
   background: var(--bg-light);
   padding: 12px 20px;
-  display: flex;
-  align-items: center;
-  gap: 15px;
   border-bottom: 1px solid #333;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
 }
 
 header h1 {
   font-size: 18px;
   color: var(--accent);
+  flex-shrink: 0;
+}
+
+@media (max-device-width: 768px) {
+  header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  flex: 0 0 auto;
+}
+
+.header-center {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 300px;
 }
 
 .header-actions {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex: 0 0 auto;
+  margin-left: auto;
 }
 
 .counter {
@@ -60,6 +340,82 @@ header h1 {
   border-radius: 6px;
   font-size: 13px;
   font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg);
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+
+.filter-separator {
+  width: 1px;
+  height: 24px;
+  background: #444;
+  margin: 0 4px;
+}
+
+.filter-btn {
+  background: var(--bg-lighter);
+  color: var(--text);
+  border: 1px solid #444;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  min-width: 32px;
+  transition: all 0.15s;
+}
+
+.filter-btn:hover {
+  border-color: var(--accent);
+}
+
+.filter-btn.mark-btn {
+  min-width: 32px;
+  padding: 6px 8px;
+}
+
+.filter-btn.all-btn {
+  background: var(--accent);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.nav-btn {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0,0,0,0.5);
+  color: white;
+  border: none;
+  width: 40px;
+  height: 80px;
+  font-size: 36px;
+  cursor: pointer;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-btn:hover {
+  background: rgba(0,0,0,0.8);
+}
+
+.nav-prev {
+  left: 0;
+  border-radius: 0 8px 8px 0;
+}
+
+.nav-next {
+  right: 0;
+  border-radius: 8px 0 0 8px;
 }
 
 button {
@@ -71,6 +427,7 @@ button {
   cursor: pointer;
   font-size: 13px;
   transition: all 0.15s;
+  outline: none;
 }
 
 button:hover:not(:disabled) {
@@ -83,9 +440,15 @@ button:disabled {
   cursor: not-allowed;
 }
 
+button:focus {
+  outline: none;
+  box-shadow: none;
+}
+
 .preview-container {
   background: var(--bg-light);
   height: 90px;
+  min-height: 90px;
   overflow-x: auto;
   overflow-y: hidden;
   border-bottom: 1px solid #333;
@@ -133,11 +496,6 @@ button:disabled {
 .preview-thumb:hover {
   border-color: var(--text-dim);
   transform: scale(1.05);
-}
-
-.preview-thumb.deleted {
-  opacity: 0.5;
-  filter: grayscale(0.5);
 }
 
 .preview-thumb.pane1-current {
@@ -190,26 +548,60 @@ main {
   overflow: hidden;
 }
 
+body.fullscreen-mode {
+  overflow: hidden;
+}
+
+body.fullscreen-mode header,
+body.fullscreen-mode footer,
+body.fullscreen-mode .preview-container {
+  display: none !important;
+}
+
+body.fullscreen-mode main {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 100vh;
+  width: 100vw;
+  z-index: 100;
+}
+
+body.fullscreen-mode .pane:not(.hidden) {
+  flex: 1;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+}
+
 .pane {
   flex: 1;
   position: relative;
   overflow: hidden;
   background: var(--bg);
   cursor: grab;
+  border: 1px solid #333;
+  z-index: 1;
 }
 
-.pane[data-pane="1"] {
-  border: 3px solid var(--pane-a);
+.pane.focused::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 0 3px var(--pane-a);
   border-radius: 8px;
+  pointer-events: none;
+  z-index: 100;
 }
 
-.pane[data-pane="2"] {
-  border: 3px solid var(--pane-b);
+.pane.focused[data-pane="2"]::after {
+  box-shadow: inset 0 0 0 3px var(--pane-b);
+}
+
+body:not(.fullscreen-mode) .pane.focused::after {
   border-radius: 8px;
-}
-
-.pane.focused {
-  box-shadow: inset 0 0 0 2px var(--focus);
 }
 
 .pane-content {
@@ -220,6 +612,8 @@ main {
   justify-content: center;
   overflow: hidden;
   transform-origin: center;
+  position: relative;
+  z-index: 1;
 }
 
 .pane-content img {
@@ -228,15 +622,49 @@ main {
   object-fit: contain;
   user-select: none;
   -webkit-user-drag: none;
+  position: relative;
+  z-index: 1;
 }
 
 .pane-marks {
   position: absolute;
+  z-index: 10;
+}
+
+.pane-controls {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  display: flex;
+  gap: 5px;
+  z-index: 10;
+}
+
+.pane-controls button {
+  background: rgba(0,0,0,0.6);
+  border: 1px solid #555;
+  color: white;
+  width: 30px;
+  height: 30px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.pane-controls button:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.pane-marks {
   top: 10px;
   right: 10px;
   display: flex;
   gap: 4px;
-  z-index: 10;
 }
 
 .pane-marks .mark-badge-lg {
@@ -260,6 +688,20 @@ main {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pane-marks-inline {
+  display: flex;
+  gap: 4px;
+}
+
+.mark-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
 }
 
 footer {
@@ -275,26 +717,18 @@ footer {
 
 .marks-legend {
   display: flex;
-  gap: 15px;
-}
-
-.mark-item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
+  gap: 8px;
 }
 
 .mark-key {
-  background: var(--bg-lighter);
-  padding: 2px 6px;
-  border-radius: 3px;
   font-weight: 600;
-  min-width: 20px;
+  min-width: 16px;
   text-align: center;
 }
 
 .mark-count {
   color: var(--text-dim);
+  font-size: 10px;
 }
 
 .modal {
@@ -323,19 +757,22 @@ footer {
 }
 
 .command-group {
-  margin-bottom: 20px;
+  margin-bottom: 15px;
+  padding: 12px;
+  background: var(--bg);
+  border-radius: 6px;
 }
 
 .command-group h3 {
-  font-size: 13px;
+  font-size: 14px;
   margin-bottom: 8px;
   color: var(--focus);
 }
 
 .bash-command {
-  background: var(--bg);
-  padding: 12px;
-  border-radius: 6px;
+  background: var(--bg-lighter);
+  padding: 10px;
+  border-radius: 4px;
   font-size: 12px;
   white-space: pre-wrap;
   word-break: break-all;
