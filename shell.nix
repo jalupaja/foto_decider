@@ -1,6 +1,6 @@
-{ pkgs ? import (fetchTarball "https://github.com/NixOS/nixpkgs/archive/nixos-24.05.tar.gz") {} }:
+with import <nixpkgs> { };
 
-pkgs.mkShell {
+mkShell {
   buildInputs = with pkgs; [
     python313
     python313Packages.pip
