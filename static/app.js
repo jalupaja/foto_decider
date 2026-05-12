@@ -482,6 +482,7 @@ function fotoDecider() {
       }
 
       await this.saveMarks();
+      this.updateFilteredIndices();
     },
 
     getMarkCount(mark) {
