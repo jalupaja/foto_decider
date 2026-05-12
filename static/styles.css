@@ -11,6 +11,7 @@ main {
   flex: 1;
   display: flex;
   overflow: hidden;
+  min-height: 0;
 }
 
 :root {
@@ -584,6 +585,7 @@ body.fullscreen-mode .pane:not(.hidden) {
   cursor: grab;
   border: 1px solid #333;
   z-index: 1;
+  min-height: 0;
 }
 
 .pane.focused::after {
@@ -607,6 +609,7 @@ body:not(.fullscreen-mode) .pane.focused::after {
 .pane-content {
   width: 100%;
   height: 100%;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
