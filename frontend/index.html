@@ -41,7 +41,7 @@
     </div>
     <div class="header-center">
       <div class="filter-group">
-        <button @click="toggleAllFilters()" class="filter-btn all-btn">All</button>
+        <button @click="toggleAllFilters()" class="filter-btn all-btn" x-text="areAllFiltersEnabled() ? 'All' : 'None'"></button>
       </div>
       <div class="filter-separator"></div>
       <div class="filter-group">
