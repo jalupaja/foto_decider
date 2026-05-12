@@ -198,8 +198,6 @@ function fotoDecider() {
         const pz = Panzoom(content, {
           maxScale: 10,
           minScale: minScale,
-          bounds: true,
-          boundsPadding: 0,
           cursor: 'grab'
         });
 
@@ -423,6 +421,14 @@ function fotoDecider() {
       if (!fileId) return;
       const current = this.rotations[fileId] || 0;
       this.rotations[fileId] = (current + degrees + 360) % 360;
+      
+      const fileIdx = this.files.findIndex(f => f.id === fileId);
+      if (fileIdx === this.index1 && this.panzoomInstances[1]) {
+        this.panzoomInstances[1].reset({ animate: false });
+      }
+      if (fileIdx === this.index2 && this.panzoomInstances[2]) {
+        this.panzoomInstances[2].reset({ animate: false });
+      }
     },
 
     rotateCurrentPane(degrees) {
