@@ -37,7 +37,10 @@ function fotoDecider() {
     },
 
     toggleAllFilters() {
-      const allEnabled = this.areAllFiltersEnabled();
+      const allEnabled = this.markFilters[1] && this.markFilters[2] && this.markFilters[3] && 
+                         this.markFilters[4] && this.markFilters[5] && this.markFilters[6] && 
+                         this.markFilters[7] && this.markFilters[8] && this.markFilters[9] &&
+                         this.markFilters.showUnmarked;
       if (allEnabled) {
         for (let i = 1; i <= 9; i++) {
           this.markFilters[i] = false;
@@ -50,13 +53,6 @@ function fotoDecider() {
         this.markFilters.showUnmarked = true;
       }
       this.updateFilteredIndices();
-    },
-
-    areAllFiltersEnabled() {
-      return this.markFilters[1] && this.markFilters[2] && this.markFilters[3] && 
-             this.markFilters[4] && this.markFilters[5] && this.markFilters[6] && 
-             this.markFilters[7] && this.markFilters[8] && this.markFilters[9] &&
-             this.markFilters.showUnmarked;
     },
 
     updateFilters() {
