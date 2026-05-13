@@ -18,6 +18,7 @@ function fotoDecider() {
     searchQuery: '',
     markFilters: { 1: true, 2: true, 3: true, 4: true, 5: true, 6: true, 7: true, 8: true, 9: true, showUnmarked: true },
     filteredIndices: [],
+    filteredFiles: [],
     fullImageCache: new Map(),
     thumbCache: new Set(),
     maxFullImages: 15,
@@ -73,6 +74,7 @@ function fotoDecider() {
     updateFilteredIndices() {
       if (!this.files || this.files.length === 0) {
         this.filteredIndices = [];
+        this.filteredFiles = [];
         return;
       }
       const newIndices = [];
@@ -83,6 +85,26 @@ function fotoDecider() {
         }
       }
       this.filteredIndices = newIndices;
+      this.filteredFiles = newIndices.map(idx => this.files[idx]).filter(Boolean);
+
+      if (this.filteredIndices.length === 0) return;
+
+      [1, 2].forEach(pane => {
+        const currentIdx = this.getPaneIndex(pane);
+        if (!this.filteredIndices.includes(currentIdx)) {
+          const currentPos = this.filteredIndices.findIndex(idx => idx > currentIdx);
+          const nextIdx = currentPos >= 0 ? this.filteredIndices[currentPos] : this.filteredIndices[this.filteredIndices.length - 1];
+          if (pane === 1) {
+            this.index1 = nextIdx;
+          } else {
+            this.index2 = nextIdx;
+          }
+        }
+      });
+    },
+
+    getFileIndex(fileId) {
+      return this.files.findIndex(file => file.id === fileId);
     },
 
     matchesMarkFilter(fileId) {
@@ -260,9 +282,10 @@ function fotoDecider() {
         const strip = document.getElementById('previewStrip');
         if (!strip) return;
         const idx = this.focusedPane === 1 ? this.index1 : this.index2;
+        const pos = this.filteredIndices.indexOf(idx);
         const thumbs = strip.querySelectorAll('.preview-thumb');
-        if (thumbs[idx]) {
-          const thumb = thumbs[idx];
+        if (pos >= 0 && thumbs[pos]) {
+          const thumb = thumbs[pos];
           const containerRect = container.getBoundingClientRect();
           const thumbRect = thumb.getBoundingClientRect();
           const offset = thumbRect.left - containerRect.left + container.scrollLeft - containerRect.width / 2 + thumbRect.width / 2;
@@ -481,9 +504,21 @@ function fotoDecider() {
         marks.push(mark);
       }
 
+      const oldFilteredPos = this.filteredIndices.indexOf(idx);
       await this.saveMarks();
-      this.marks = { ...this.marks };
       this.updateFilteredIndices();
+
+      if (oldFilteredPos !== -1 && this.filteredIndices.indexOf(idx) === -1 && this.filteredIndices.length > 0) {
+        const nextPos = Math.min(oldFilteredPos, this.filteredIndices.length - 1);
+        const nextIdx = this.filteredIndices[nextPos];
+        if (this.focusedPane === 1) {
+          this.index1 = nextIdx;
+        } else {
+          this.index2 = nextIdx;
+        }
+        this.updatePreload();
+        this.scrollPreview();
+      }
     },
 
     getMarkCount(mark) {

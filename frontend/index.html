@@ -65,21 +65,21 @@
 
   <div class="preview-container" id="previewContainer">
     <div class="preview-strip" id="previewStrip">
-      <template x-for="idx in filteredIndices" :key="files[idx].id">
+      <template x-for="file in filteredFiles" :key="file.id">
         <div
           class="preview-thumb"
-          :class="(index1 === idx ? 'pane1-current ' : '') + (index2 === idx ? 'pane2-current ' : '') + ((marks[files[idx].id] && marks[files[idx].id].includes(3)) ? 'deleted ' : '') + ((marks[files[idx].id] && marks[files[idx].id].length > 0) ? 'marked' : '')"
-          :title="files[idx].name"
-          @click="focusedPane === 1 ? index1 = idx : index2 = idx"
+          :class="(index1 === getFileIndex(file.id) ? 'pane1-current ' : '') + (index2 === getFileIndex(file.id) ? 'pane2-current ' : '') + ((marks[file.id] && marks[file.id].includes(3)) ? 'deleted ' : '') + ((marks[file.id] && marks[file.id].length > 0) ? 'marked' : '')"
+          :title="file.name"
+          @click="focusedPane === 1 ? index1 = getFileIndex(file.id) : index2 = getFileIndex(file.id)"
         >
           <img
-            :src="`/api/thumbnail/${encodeURIComponent(files[idx].id)}`"
-            :alt="files[idx].name"
+            :src="`/api/thumbnail/${encodeURIComponent(file.id)}`"
+            :alt="file.name"
             loading="lazy"
           >
           <div class="preview-badges">
-            <span x-show="files[idx].is_raw" class="mark-badge raw-badge" style="background: var(--danger);">RAW</span>
-            <template x-for="mark in (marks[files[idx].id] || [])" :key="mark">
+            <span x-show="file.is_raw" class="mark-badge raw-badge" style="background: var(--danger);">RAW</span>
+            <template x-for="mark in (marks[file.id] || [])" :key="mark">
               <span class="mark-badge" :style="`background: var(--mark-${mark})`" x-text="mark"></span>
             </template>
           </div>
