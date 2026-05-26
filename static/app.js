@@ -17,6 +17,7 @@ function fotoDecider() {
     searchInput: '',
     searchQuery: '',
     markFilters: { 1: true, 2: true, 3: true, 4: true, 5: true, 6: true, 7: true, 8: true, 9: true, showUnmarked: true },
+    fileTypeFilters: { jpeg: true, raw: true, rawOnly: true },
     filteredIndices: [],
     filteredFiles: [],
     fullImageCache: new Map(),
@@ -108,11 +109,24 @@ function fotoDecider() {
     },
 
     matchesMarkFilter(fileId) {
+      const file = this.files.find(f => f.id === fileId);
+      if (!file) return false;
+      
+      if (!this.matchesFileTypeFilter(file)) return false;
+      
       const fileMarks = this.marks[fileId] || [];
       if (fileMarks.length === 0) {
         return this.markFilters.showUnmarked;
       }
       return fileMarks.some(m => this.markFilters[m]);
+    },
+
+    matchesFileTypeFilter(file) {
+      if (file.only_raw && !this.fileTypeFilters.rawOnly) return false;
+      if (file.is_raw && !file.only_raw && !this.fileTypeFilters.raw) return false;
+      if (file.is_jpeg && !this.fileTypeFilters.jpeg) return false;
+      if (!file.is_raw && !file.is_jpeg && !this.fileTypeFilters.jpeg) return false;
+      return true;
     },
 
     getPaneFileId(pane) {

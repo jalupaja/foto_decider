@@ -65,14 +65,34 @@ def is_image(filename: str) -> bool:
 def get_image_files(folder: str) -> list[dict]:
     files = []
     folder_path = Path(folder)
+    
+    # Build a map of basenames to extensions for detecting raw-only files
+    all_files = {f.stem.lower(): f.suffix.lower() for f in sorted(folder_path.iterdir()) if f.is_file() and is_image(f.name)}
+    
     for f in sorted(folder_path.iterdir()):
         if f.is_file() and is_image(f.name):
+            is_raw = f.suffix.lower() in RAW_EXTENSIONS
+            is_jpeg = f.suffix.lower() in {'.jpg', '.jpeg'}
+            
+            # Check if this file has only a RAW version (no corresponding JPG/standard image)
+            stem_lower = f.stem.lower()
+            has_other_format = False
+            for other_name, other_ext in all_files.items():
+                if other_name == stem_lower and other_ext != f.suffix.lower():
+                    if not is_raw and other_ext not in RAW_EXTENSIONS:
+                        has_other_format = True
+                    elif is_raw:
+                        has_other_format = True
+            only_raw = is_raw and not has_other_format
+            
             files.append({
                 "id": str(f.absolute()),
                 "name": f.name,
                 "path": str(f.absolute()),
                 "size": f.stat().st_size,
-                "is_raw": f.suffix.lower() in RAW_EXTENSIONS,
+                "is_raw": is_raw,
+                "is_jpeg": is_jpeg,
+                "only_raw": only_raw,
             })
     return files
 

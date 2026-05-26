@@ -57,6 +57,27 @@
           </button>
         </template>
       </div>
+      <div class="filter-separator"></div>
+      <div class="filter-group">
+        <button 
+          @click="fileTypeFilters.jpeg = !fileTypeFilters.jpeg; updateFilters()" 
+          class="filter-btn" 
+          :style="fileTypeFilters.jpeg ? 'border-color: var(--focus);' : 'opacity: 0.5'"
+          title="Show JPEG files"
+        >JPG</button>
+        <button 
+          @click="fileTypeFilters.raw = !fileTypeFilters.raw; updateFilters()" 
+          class="filter-btn" 
+          :style="fileTypeFilters.raw ? 'border-color: var(--focus);' : 'opacity: 0.5'"
+          title="Show RAW files"
+        >RAW</button>
+        <button 
+          @click="fileTypeFilters.rawOnly = !fileTypeFilters.rawOnly; updateFilters()" 
+          class="filter-btn" 
+          :style="fileTypeFilters.rawOnly ? 'border-color: var(--focus);' : 'opacity: 0.5'"
+          title="Show RAW-only files (no JPEG)"
+        >RAW-Only</button>
+      </div>
     </div>
     <div class="header-actions">
       <button @click="openBash()" :disabled="Object.keys(marks).length === 0">⚡ Bash</button>
