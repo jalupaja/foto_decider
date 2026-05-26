@@ -80,7 +80,7 @@
       </div>
     </div>
     <div class="header-actions">
-      <button @click="openBash()" :disabled="Object.keys(marks).length === 0">⚡ Bash</button>
+      <button @click="openMarksModal()" :disabled="Object.keys(marks).length === 0">📋 Marks</button>
     </div>
   </header>
 
@@ -189,33 +189,28 @@
 
   <div class="zoom-indicator" id="zoomIndicator">100%</div>
 
-  <!-- Bash Modal -->
-  <div class="modal" x-show="showBash" x-transition @click.self="showBash = false">
-    <div class="modal-content" style="max-width: 900px;">
-      <h2>⚡ File Operations</h2>
+  <!-- Marks Modal -->
+  <div class="modal" x-show="showMarksModal" x-transition @click.self="showMarksModal = false">
+    <div class="modal-content" style="max-width: 600px;">
+      <h2>📋 Marks</h2>
       <template x-for="mark in [1,2,3,4,5,6,7,8,9]" :key="mark">
-        <div class="command-group" x-show="bashFiles[mark]?.length > 0">
+        <div class="command-group" x-show="marksData[mark]?.length > 0">
           <h3>
             <span x-text="mark"></span>
-            (<span x-text="bashFiles[mark]?.length || 0"></span> files)
+            (<span x-text="marksData[mark]?.length || 0"></span> files)
           </h3>
-          <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
-            <button @click="getFilenames(mark)" style="flex: 1; min-width: 120px;">📋 Copy Names</button>
-            <input type="text" x-model="bashDest[mark]" placeholder="Destination path..." 
-              style="flex: 2; min-width: 200px; background: var(--bg); border: 1px solid #333; color: var(--text); padding: 8px; border-radius: 4px;">
-            <button @click="bashCopy(mark)" :disabled="!bashDest[mark]" style="flex: 1; min-width: 100px;">📁 Copy</button>
-            <button @click="bashMove(mark)" :disabled="!bashDest[mark]" style="flex: 1; min-width: 100px;">📂 Move</button>
-            <button @click="bashDelete(mark)" style="flex: 1; min-width: 100px; background: var(--danger); border-color: var(--danger);">🗑️ Delete</button>
+          <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+            <button @click="getFilenames(mark)" style="flex: 1;">📋 Copy Names</button>
           </div>
-          <div x-show="bashResults[mark]" x-text="bashResults[mark]" 
-            :style="bashResults[mark]?.startsWith('Error') ? 'color: var(--danger)' : 'color: var(--success)'"
+          <div x-show="marksResults[mark]" x-text="marksResults[mark]" 
+            :style="marksResults[mark]?.startsWith('Error') ? 'color: var(--danger)' : 'color: var(--success)'"
             style="font-size: 12px; margin-top: 5px;"></div>
         </div>
       </template>
       <template x-if="Object.keys(marks).length === 0">
         <p style="color: var(--text-dim);">No marked files</p>
       </template>
-      <button @click="showBash = false" style="width: 100%; margin-top: 20px;">Close</button>
+      <button @click="showMarksModal = false" style="width: 100%; margin-top: 20px;">Close</button>
     </div>
   </div>
 

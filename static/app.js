@@ -9,11 +9,9 @@ function fotoDecider() {
     pane1ImageUrl: null,
     pane2ImageUrl: null,
     marks: {},
-    showBash: false,
-    bashCommands: {},
-    bashFiles: {},
-    bashDest: {},
-    bashResults: {},
+    showMarksModal: false,
+    marksData: {},
+    marksResults: {},
     searchInput: '',
     searchQuery: '',
     markFilters: { 1: true, 2: true, 3: true, 4: true, 5: true, 6: true, 7: true, 8: true, 9: true, showUnmarked: true },
@@ -419,8 +417,8 @@ function fotoDecider() {
           }
           break;
         case 'Escape':
-          if (this.showBash) {
-            this.showBash = false;
+          if (this.showMarksModal) {
+            this.showMarksModal = false;
           } else if (this.fullscreenPane) {
             this.toggleFullscreen();
           } else if (pz) {
@@ -574,19 +572,18 @@ function fotoDecider() {
       }
     },
 
-    async openBash() {
+    async openMarksModal() {
       try {
         const resp = await fetch('/api/bash');
         const data = await resp.json();
-        this.bashFiles = {};
+        this.marksData = {};
         for (const [mark, files] of Object.entries(data.files_by_mark)) {
-          this.bashFiles[parseInt(mark)] = files;
+          this.marksData[parseInt(mark)] = files;
         }
-        this.showBash = true;
-        this.bashDest = {};
-        this.bashResults = {};
+        this.showMarksModal = true;
+        this.marksResults = {};
       } catch (err) {
-        console.error('Failed to load bash data:', err);
+        console.error('Failed to load marks data:', err);
       }
     },
 
@@ -601,64 +598,15 @@ function fotoDecider() {
         if (data.success) {
           const copied = await this.copyToClipboard(data.filenames.join(' '));
           if (copied) {
-            this.bashResults[mark] = `Copied ${data.filenames.length} filenames`;
+            this.marksResults[mark] = `Copied ${data.filenames.length} filenames`;
           } else {
-            this.bashResults[mark] = 'Copy: clipboard not available (try HTTPS)';
+            this.marksResults[mark] = 'Copy: clipboard not available (try HTTPS)';
           }
         } else {
-          this.bashResults[mark] = 'Error: ' + data.message;
+          this.marksResults[mark] = 'Error: ' + data.message;
         }
       } catch (err) {
-        this.bashResults[mark] = 'Error: ' + err.message;
-      }
-    },
-
-    async bashCopy(mark) {
-      try {
-        const resp = await fetch('/api/bash/copy', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mark: mark, action: 'copy', destination: this.bashDest[mark] })
-        });
-        const data = await resp.json();
-        this.bashResults[mark] = data.success ? `Copied ${data.copied} files` : 'Error: ' + data.message;
-      } catch (err) {
-        this.bashResults[mark] = 'Error: ' + err.message;
-      }
-    },
-
-    async bashMove(mark) {
-      try {
-        const resp = await fetch('/api/bash/move', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mark: mark, action: 'move', destination: this.bashDest[mark] })
-        });
-        const data = await resp.json();
-        this.bashResults[mark] = data.success ? `Moved ${data.moved} files` : 'Error: ' + data.message;
-        if (data.success) {
-          await this.loadMarks();
-        }
-      } catch (err) {
-        this.bashResults[mark] = 'Error: ' + err.message;
-      }
-    },
-
-    async bashDelete(mark) {
-      if (!confirm(`Delete all files with mark ${mark}?`)) return;
-      try {
-        const resp = await fetch('/api/bash/delete', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mark: mark, action: 'delete' })
-        });
-        const data = await resp.json();
-        this.bashResults[mark] = data.success ? `Deleted ${data.deleted} files` : 'Error: ' + data.message;
-        if (data.success) {
-          await this.loadMarks();
-        }
-      } catch (err) {
-        this.bashResults[mark] = 'Error: ' + err.message;
+        this.marksResults[mark] = 'Error: ' + err.message;
       }
     },
 
