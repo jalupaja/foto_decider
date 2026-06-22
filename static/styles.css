@@ -107,7 +107,7 @@ main {
     padding-top: 8px;
     border-top: 1px solid #333;
   }
-  
+
   .preview-container {
     height: 70px;
   }
@@ -333,6 +333,7 @@ header h1 {
   gap: 10px;
   flex: 0 0 auto;
   margin-left: auto;
+  margin-right: auto;
 }
 
 .counter {

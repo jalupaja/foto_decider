@@ -78,9 +78,10 @@
           title="Show RAW-only files (no JPEG)"
         >RAW-Only</button>
       </div>
-    </div>
-    <div class="header-actions">
-      <button @click="openMarksModal()" :disabled="Object.keys(marks).length === 0">📋 Marks</button>
+      <div class="filter-separator"></div>
+      <div class="header-actions">
+        <button @click="openMarksModal()" :disabled="Object.keys(marks).length === 0">📋 Marks</button>
+      </div>
     </div>
   </header>
 
