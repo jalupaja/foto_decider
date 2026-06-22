@@ -230,7 +230,7 @@ function fotoDecider() {
         const minScale = this.getMinScale(img, pane);
         
         const pz = Panzoom(content, {
-          maxScale: 10,
+          maxScale: 100,
           minScale: minScale,
           cursor: 'grab'
         });
@@ -243,12 +243,13 @@ function fotoDecider() {
     },
 
     getMinScale(img, pane) {
-      if (!img.naturalWidth || !img.naturalHeight) return 1;
+      minScale = 0.5;
+      if (!img.naturalWidth || !img.naturalHeight) return minScale;
       const paneEl = document.querySelector(`.pane[data-pane="${pane}"]`);
       const rect = paneEl.getBoundingClientRect();
       const scaleX = rect.width / img.naturalWidth;
       const scaleY = rect.height / img.naturalHeight;
-      return Math.min(scaleX, scaleY, 1);
+      return Math.min(scaleX, scaleY, minScale);
     },
 
     handleResize() {
