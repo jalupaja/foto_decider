@@ -1,15 +1,13 @@
 # Foto Decider
 
-An image comparison tool for photographers to efficiently select and organize thousands of photos.
+An image comparison tool for photographers to efficiently select and organize too many photos.
+> This is 90% vibe-coded which might mean buggy, unreliable and vulnerable software. Be aware when using.  
 
 ## Quick Start
 
 ```bash
 # Install dependencies
 pip install -r requirements.txt
-
-# Run with a folder
-./run.sh /path/to/photos
 
 # Or just run and enter path in the UI
 ./run.sh
