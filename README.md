@@ -9,7 +9,7 @@ An image comparison tool for photographers to efficiently select and organize to
 # Install dependencies
 pip install -r requirements.txt
 
-# Or just run and enter path in the UI
+# And just run and enter folder path in the UI
 ./run.sh
 ```
 
